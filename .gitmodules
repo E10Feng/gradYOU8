@@ -1,0 +1,3 @@
+[submodule "backend/libs/pageindex_agent"]
+	path = backend/libs/pageindex_agent
+	url = https://github.com/E10Feng/vectorless_gemini.git

@@ -36,7 +36,7 @@ app.add_middleware(
 
 # ── Import vectorless RAG lib ────────────────────────────────────────────────
 import sys
-AGENT_PATH = Path(__file__).parent / "libs" / "pageindex_agent"
+AGENT_PATH = Path(__file__).parent / "libs" / "pageindex_agent" / "pageindex_agent"
 sys.path.insert(0, str(AGENT_PATH))
 
 from pageindex_agent.page_index import page_index_main
