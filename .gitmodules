@@ -1,3 +1,0 @@
-[submodule "backend/libs/vectorless_gemini"]
-	path = backend/libs/vectorless_gemini
-	url = https://github.com/e10redi/vectorless_gemini.git

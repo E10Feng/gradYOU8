@@ -59,8 +59,8 @@ A knowledge assistant + graduation tracker that:
 |---|---|
 | Frontend | React 18 + Vite + TypeScript + Tailwind CSS |
 | Backend | FastAPI + Python 3.11 |
-| RAG | **PageIndex** (self-hosted, open-source) — vectorless, reasoning-based |
-| Reasoning Model | OpenAI GPT-4o or Anthropic Claude |
+| RAG | **PageIndex** (self-hosted) + **Minimix** — vectorless, reasoning-based |
+| Reasoning Model | Minimix API (`MiniMax-M2.7`) |
 | PDF Parsing | PyMuPDF (fitz) + pdfplumber (for tables) |
 | Database | SQLite (tree index + course data) |
 | Transcript OCR | pytesseract or hosted OCR API (v2) |

@@ -36,8 +36,8 @@ app.add_middleware(
 
 # ── Import vectorless RAG lib ────────────────────────────────────────────────
 import sys
-VECTORLESS_PATH = Path(__file__).parent / "libs" / "vectorless_gemini"
-sys.path.insert(0, str(VECTORLESS_PATH))
+AGENT_PATH = Path(__file__).parent / "libs" / "pageindex_agent"
+sys.path.insert(0, str(AGENT_PATH))
 
 from pageindex_agent.page_index import page_index_main
 from pageindex_agent.pageindex_config import pageindex_config
