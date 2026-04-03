@@ -1,4 +1,4 @@
-# WashU Course Navigator — Spec Draft
+# gradYOU8 — WashU Graduation Navigator
 
 ## Working Title
 **Path** — _"find your way through WashU's requirements maze"_
