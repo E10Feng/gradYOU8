@@ -10,9 +10,7 @@ node_modules/
 dist/
 
 # Data
-data/
 *.pdf
-*.tree.json
 
 # Logs
 logs/
