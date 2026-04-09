@@ -1,0 +1,5 @@
+def _reset_client() -> None:
+    global _client
+    if _client:
+        _client.close()
+    _client = None

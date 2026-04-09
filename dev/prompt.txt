@@ -1,0 +1,50 @@
+183:     prompt = f"""You are a WashU degree requirement assistant.
+
+184: A student asks: "{query}"
+
+185: 
+
+186: Here is the document's table of contents with page ranges and summaries:
+
+187: 
+
+188: {tree_overview}
+
+189: 
+
+190: Your task:
+
+191: 1. Identify which section(s) of the table of contents are most relevant to answering this question.
+
+192: 2. Return the page ranges (start_index and end_index) for those sections as JSON.
+
+193: 3. Also return a brief answer to the question based on what you know about the document structure.
+
+194: 
+
+195: CRITICAL: You must respond with ONLY a valid JSON object. Do not include any text before or after the JSON. Do not write "Here is the JSON" or "Based on the document" or any explanation. Start directly with {{ and end directly with }}."""
+
+196: 
+
+197:     response = ChatGPT_API(model=model, prompt=prompt)
+
+198:     # Strip MiniMax reasoning tags: replace start marker, keep end marker, split on it
+
+199:     # Response: <think>thinking</think>{"answer":...}
+
+200:     # After replace: <<<THINKING>>>thinking","answer":...}
+
+201:     # Split on "</think>" to separate thinking from JSON
+
+202:     parts = (response or "").replace("<think>", "<<<THINKING>>>", 1).split("</think>")
+
+203:     post_think = parts[-1].strip() if len(parts) > 1 else (response or "")
+
+204: 
+
+205:     # Try standard JSON extraction first (handles responses that ARE JSON from the start)
+
+206:     parsed = extract_json(post_think)
+
+207:     sections = parsed.get("relevant_sections", []) or []
+

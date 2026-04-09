@@ -1,0 +1,1 @@
+python "C:\Users\ethan\.openclaw\workspace\builds\washu-navigator\run_agentic_rag.py" "If I'm majoring in computational biology and minoring in computer science, do CSE 1301 and CSE 2407 double count for both the major and minor?"

@@ -1,0 +1,44 @@
+def extract_json(content: str) -> dict | list:
+    """Extract JSON from MiniMax response - handles thinking tags and post-thinking JSON."""
+    try:
+        start_idx = content.find("```json")
+        if start_idx != -1:
+            start_idx += 7
+            end_idx = content.rfind("```")
+            json_content = content[start_idx:end_idx].strip()
+        else:
+            json_content = content.strip()
+        # Strip thinking tags (Minimax <thinking>...</thinking>)
+        json_content = re.sub(r"<think>.*?</think>", "", json_content, flags=re.DOTALL)
+        json_content = re.sub(r"<start_index_\d+>.*?<end_index_\d+>", "", json_content, flags=re.DOTALL)
+        # Also check for JSON appearing AFTER thinking ends
+        last_toc = json_content.rfind("</think>")
+        post_thinking = ""
+        if last_toc != -1:
+            post_thinking = json_content[last_toc + len("</think>"):].strip()
+        # Find the first '{' and last '}' as JSON boundaries
+        first_brace = json_content.find("{")
+        last_brace = json_content.rfind("}")
+        if first_brace != -1 and last_brace != -1 and first_brace < last_brace:
+            json_content = json_content[first_brace:last_brace + 1]
+        json_content = json_content.replace("None", "null").replace("\n", " ").replace("\r", " ")
+        json_content = " ".join(json_content.split())
+        try:
+            return json.loads(json_content)
+        except json.JSONDecodeError:
+            pass
+        # Handle multiple JSON objects without array wrapper
+        try:
+            stripped = json_content.strip()
+            if stripped.startswith("{") and ",{" in stripped:
+                json_content = "[" + json_content + "]"
+                return json.loads(json_content)
+        except Exception:
+            pass
+        # Try JSON after thinking ends
+        if post_thinking:
+            try:
+                return json.loads(post_thinking)
+            except json.JSONDecodeError:
+                pass
+        

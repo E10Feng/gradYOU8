@@ -1,0 +1,16 @@
+def get_tree_path() -> Path:
+    return Path(os.getenv("TREE_INDEX_PATH", str(DATA_DIR / "bulletin.tree.json")))
+
+def get_bulletin_pdf() -> Path:
+    default = DATA_DIR / "bulletin.pdf"
+    return Path(os.getenv("BULLETIN_PDF", str(default)))
+
+def load_tree() -> dict:
+    path = get_tree_path()
+    if not path.exists():
+        raise HTTPException(404, f"Tree index not found at {path}. Run /ingest first.")
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+# ── Ingestion ────────────────────────────────────────────────────────────────
+def run_ingestion(pdf_path: Path

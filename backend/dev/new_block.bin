@@ -1,0 +1,10 @@
+hink>[\s\S]*?</think>", "", answer)  # strip thinking tags
+       
+                # Remove chain-of-thought / reasoning trace lines from the response
+                lines = answer.split("\n")
+                skip = ["based on the content", "i need to", "let me check", "the content says", "now produce final answer", "final answer", "thus answer accordingly"]
+                clean = [l for l in lines if not any(l.strip().lower().startswith(p) for p in skip)]
+                answer = "\n".join(clean).strip().strip()
+        if not answer:
+            answer = "I couldn't find a confident answer."
+    exc

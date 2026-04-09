@@ -1,0 +1,111 @@
+def tree_retrieve(query: str, tree: dict, model: str = "gemini-2.5-flash") -> tuple[str, list[dict]]:
+    """
+    Given a question and a loaded tree index, use Gemini to reason over
+    the tree structure and retrieve the most relevant page ranges.
+    Returns (answer, sources).
+    """
+    from utils import ChatGPT_API, extract_json
+
+    # Build a concise tree overview for the LLM to reason over
+    def summarize_tree(nodes, depth=0):
+        lines = []
+        for node in nodes:
+            indent = "  " * depth
+            title = node.get("title", "")
+            start = node.get("start_index", "?")
+            end = node.get("end_index", "?")
+            summary = node.get("summary", "")[:100]
+            lines.append(f"{indent}- [{start}-{end}] {title} {'| ' + summary if summary else ''}")
+            if node.get("nodes"):
+                lines.extend(summarize_tree(node["nodes"], depth + 1))
+        return lines
+
+    tree_overview = "\n".join(summarize_tree(tree.get("structure", [])))
+    doc_name = tree.get("doc_name", "WashU Bulletin")
+
+    # Prompt the LLM to pick the right pages
+    prompt = f"""You are a WashU degree requirement assistant.
+A student asks: "{query}"
+
+Here is the document's table of contents with page ranges and summaries:
+
+{tree_overview}
+
+Your task:
+1. Identify which section(s) of the table of contents are most relevant to answering this question.
+2. Return the page ranges (start_index and end_index) for those sections as JSON.
+3. Also return a brief answer to the question based on what you know about the document structure.
+
+Return JSON in this format:
+{{
+  "relevant_sections": [
+    {{"title": "...", "start_index": N, "end_index": M, "reasoning": "..."}},
+    ...
+  ],
+  "answer": "Your brief answer to the question"
+}}
+
+Return ONLY JSON, no extra text."""
+
+    response = ChatGPT_API(model=model, prompt=prompt)
+    parsed = extract_json(response)
+
+    sections = parsed.get("relevant_sections", [])
+    answer = parsed.get("answer", "I couldn't find a confident answer in the document.")
+
+    # Retrieve the actual page text for sources
+    sources = []
+    if sections:
+        pdf_path = get_bulletin_pdf()
+        if pdf_path.exists():
+            try:
+                from utils import get_text_of_pages
+                for sec in sections[:3]:  # top 3 only
+                    start = sec.get("start_index", 0)
+                    end = sec.get("end_index", start + 1)
+                    text = get_text_of_pages(str(pdf_path), start, end, tag=False)
+                    sources.append({
+                        "title": sec.get("title", ""),
+                        "page_range": f"{start}-{end}",
+                        "text": text[:500] + "..." if len(text) > 500 else text,
+                    })
+            except Exception:
+                pass
+
+    return answer, sources
+
+# ── Routes ───────────────────────────────────────────────────────────────────
+@app.get("/")
+async def root():
+    return {"app": "WashU Navigator", "version": "0.1.0", "status": "running"}
+
+
+@app.get("/api/health")
+async def health():
+    """Health check — verifies tree index exists and reports node count."""
+    tree_path = get_tree_path()
+    indexed = tree_path.exists()
+    num_nodes = 0
+    if indexed:
+        try:
+            num_nodes = len(load_tree().get("structure", []))
+        except Exception:
+            indexed = False
+    return {
+        "status": "ok",
+        "db": True,  # no real DB yet
+        "tree_indexed": indexed,
+        "tree_nodes": num_nodes,
+    }
+
+@app.post("/ingest", response_model=IngestResponse)
+async def ingest(req: IngestRequest, background_tasks: BackgroundTasks):
+    """Ingest (or re-ingest) the WashU bulletin PDF and build the tree index."""
+    pdf_path = get_bulletin_pdf()
+    if req.pdf_path:
+        candidate = DATA_DIR / req.pdf_path
+        if candidate.exists():
+            pdf_path = candidate
+
+    if not pdf_path.exists():
+        raise HTTPException(404, f"PDF not found at {pdf_pat

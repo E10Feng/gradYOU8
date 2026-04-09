@@ -1,0 +1,16 @@
+answer = call_minimax(model=model, prompt=answer_prompt)
+        answer = (answer or "").strip()
+        # Strip MiniMax reasoning tags
+        answer = re.sub(r"<think>[\s\S]*?</think>", "", answer)  # strip thinking tags
+        answer = answer.strip()
+        if not answer:
+            answer = "I couldn't find a confident answer."
+    except Exception:
+        answer = "I couldn't find a confident answer."
+
+    return answer, sources
+
+# ── Routes ───────────────────────────────────────────────────────────────────
+@app.get("/")
+async def root():
+    return {"app": "WashU Navigator", "versio

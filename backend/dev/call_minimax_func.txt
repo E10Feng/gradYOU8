@@ -1,0 +1,57 @@
+def call_minimax(prompt: str, model: str = "MiniMax-M2.7") -> str:
+    """Call MiniMax chat API and return the response text."""
+    import urllib.request
+    import os
+    token = os.getenv("MINIMAX_API_KEY", "")
+    if not token:
+        _auth_path = Path.home() / ".openclaw" / "agents" / "main" / "agent" / "auth-profiles.json"
+        try:
+            with open(_auth_path) as _f:
+                _profiles = json.load(_f)
+            for _name, _cfg in _profiles.get("profiles", {}).items():
+                if "minimax" in _name.lower():
+                    token = _cfg["access"]
+                    break
+        except Exception:
+            pass
+    payload = json.dumps({"model": model, "messages": [{"role": "user", "content": prompt}], "max_tokens": 8000}).encode()
+    req = urllib.request.Request(
+        "https://api.minimax.io/v1/chat/completions",
+        data=payload,
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        method="POST"
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=120) as r:
+            result = json.loads(r.read())
+            raw = result["choices"][0]["message"]["content"]
+            # MiniMax embeds thinking in <thinking>...</thinking> blocks.
+            # Strip them, then try to find and extract JSON from the remaining text.
+            raw = raw.replace("<think>", "").replace("</think>", "")
+
+            # Try to find JSON object/array anywhere in the stripped text
+            import re
+            # Match {...} or [...] that appears in the text
+            for match in re.finditer(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', raw, re.DOTALL):
+                candidate = match.group(0)
+                try:
+                    parsed = json.loads(candidate)
+                    if isinstance(parsed, (dict, list)) and len(candidate) > 5:
+                        return candidate
+                except Exception:
+                    pass
+            # Also try array matches
+            for match in re.finditer(r'\[[^\[\]]+\]', raw):
+                candidate = match.group(0)
+                try:
+                    parsed = json.loads(candidate)
+                    if isinstance(parsed, list) and len(candidate) > 5:
+                        return candidate
+                except Exception:
+                    pass
+
+            # Fallback: return stripped text as-is
+            return raw.strip()
+    except Exception as e:
+        return f"API_ERROR: {e}"
+

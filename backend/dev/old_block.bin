@@ -1,0 +1,5 @@
+hink>[\s\S]*?</think>", "", answer)  # strip thinking tags
+        answer = answer.strip()
+        if not answer:
+            answer = "I couldn't find a confident answer."
+    exc

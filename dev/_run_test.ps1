@@ -1,0 +1,1 @@
+python "C:\Users\ethan\.openclaw\workspace\builds\washu-navigator\_test_direct.py"

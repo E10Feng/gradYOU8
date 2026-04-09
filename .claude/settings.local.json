@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find . -name CLAUDE.md -o -name .cursor -o -name *.cursor)",
+      "Bash(taskkill /F /IM uvicorn.exe)",
+      "Bash(taskkill /F /IM python.exe /FI \"WINDOWTITLE eq uvicorn*\")",
+      "Bash(npx --yes kill-port 8001)",
+      "Bash(npx kill-port:*)",
+      "Bash(curl -s http://localhost:8001/api/health)",
+      "Bash(python -c \":*)",
+      "Bash(python -c \"import json,sys; p=json.load\\(sys.stdin\\); print\\(json.dumps\\(p.get\\(''''programs'''', p.get\\(''''student'''',{}\\)\\), indent=2\\)\\)\")",
+      "Bash(grep -r program_indexer /c/Users/ethan/.openclaw/workspace/gradYOU8/backend --include=*.py)",
+      "Bash(grep -o \"\"title\"\"[^,]* /c/Users/ethan/.openclaw/workspace/gradYOU8/data/bulletin_arts_sciences.tree.json)",
+      "Bash(jq \".[] | select\\(.title | contains\\(\"\"Genomics\"\"\\)\\) | .title\" /c/Users/ethan/.openclaw/workspace/gradYOU8/data/bulletin_arts_sciences.tree.json)",
+      "WebFetch(domain:github.com)",
+      "WebSearch",
+      "WebFetch(domain:docs.pageindex.ai)",
+      "WebFetch(domain:www.mintlify.com)",
+      "WebFetch(domain:pageindex.ai)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:www.analyticsvidhya.com)",
+      "WebFetch(domain:www.blog.brightcoding.dev)",
+      "WebFetch(domain:raw.githubusercontent.com)"
+    ]
+  }
+}

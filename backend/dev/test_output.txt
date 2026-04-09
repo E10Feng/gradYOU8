@@ -1,0 +1,123 @@
+Status: 200
+
+Answer:
+[Arts & Sciences Bulletin]
+The user asks: "You are a WashU degree requirement assistant. A student asks: what are the core classes for the bio major? Here is relevant content from the WashU Undergraduate Bulletin..."
+
+We need to answer based only on content above. The content includes the biology major requirements. The question: "what are the core classes for the bio major?" Typically, "core classes" might refer to required courses for the major, maybe the required courses list. Let's find from the content.
+
+The "Biology Major" section lists program requirements: total units required: 58. Grade requirement: letter grade, C- or better.
+
+Required Courses table:
+
+- BIOL 2960 Principles of Biology I (4)
+- BIOL 2970 Principles of Biology II (4)
+- CHEM 1601 Principles of General Chemistry I or CHEM 1701 General Chemistry I (3)
+- CHEM 1602 Principles of General Chemistry II or CHEM 1702 General Chemistry II (3)
+- CHEM 1751 General Chemistry Laboratory I (2)
+- CHEM 1752 General Chemistry Laboratory II (2)
+- CHEM 2561 Organic Chemistry I With Lab (4)
+- CHEM 2562 Organic Chemistry II With Lab (4)
+- PHYSICS 1740 Physics I or PHYSICS 1760 Focused Physics I (3)
+- PHYSICS 1741 Physics I Lab (1)
+- PHYSICS 1742 Physics II or PHYSICS 1762 Focused Physics II (3)
+- PHYSICS 1743 Physics II Lab (1)
+- MATH 1510 Calculus II (3)
+- MATH 2130 Calculus III or MATH 3020 Elementary to Intermediate Statistics and Data Analysis or SDS 2020 Elementary Probability and Statistics (3)
+
+Total units: 40
+
+So these are the core required courses.
+
+But there is also advanced biology courses: at least 18 units in advanced biology courses (numbered 3000 or above), not counting certain courses. Also one advanced lab.
+
+The question is ambiguous: "core classes for the bio major" could be interpreted as the required courses (the ones above). The student likely wants the list of core classes. Provide the course numbers, titles, and unit counts. Also note that there are additional area requirements (Area A, B, C). Possibly the "core classes" also include the area distribution. However, the phrase "core classes" often used to refer to required courses.
+
+Better to provide the required courses (core). Also mention the advanced biology requirement.
+
+Thus answer: The core courses are BIOL 2960, BIOL 2970, CHEM 1601/1701, CHEM 1602/1702, CHEM 1751, CHEM 1752, CHEM 2561, CHEM 2562, PHYSICS 1740/1760, PHYSICS 1741, PHYSICS 1742/1762, PHYSICS 1743, MATH 1510, and one of MATH 2130, MATH 3020, or SDS 2020.
+
+Also provide unit counts.
+
+Also note that the major also requires at least 18 advanced units and an advanced lab.
+
+We need to be specific with unit counts.
+
+Potential to also mention that these are the "core" courses required for all biology majors.
+
+We need to base answer on content only.
+
+Thus answer with table format.
+
+Make sure not to add external info.
+
+Now, incorporate formatting. Also we can include a summary.
+
+Potential answer:
+
+"The core courses for the Biology major are:"
+
+- BIOL 2960 – Principles of Biology I (4 units)
+- BIOL 2970 – Principles of Biology II (4 units)
+- CHEM 1601 or CHEM 1701 – General Chemistry I (3 units)
+- CHEM 1602 or CHEM 1702 – General Chemistry II (3 units)
+- CHEM 1751 – General Chemistry Laboratory I (2 units)
+- CHEM 1752 – General Chemistry Laboratory II (2 units)
+- CHEM 2561 – Organic Chemistry I With Lab (4 units)
+- CHEM 2562 – Organic Chemistry II With Lab (4 units)
+- PHYSICS 1740 or PHYSICS 1760 – Physics I (3 units)
+- PHYSICS 1741 – Physics I Lab (1 unit)
+- PHYSICS 1742 or PHYSICS 1762 – Physics II (3 units)
+- PHYSICS 1743 – Physics II Lab (1 unit)
+- MATH 1510 – Calculus II (3 units)
+- One of: MATH 2130, MATH 3020, or SDS 2020 (3 units)
+
+Total: 40 units.
+
+Add note: In addition, you must complete at least 18 advanced biology units (3000+), including an advanced lab.
+
+Thus answer accordingly.
+
+Make sure to reference content.
+
+Now answer.
+
+
+
+
+**Core (required) courses for the Biology major**
+
+| Course # | Title (abbreviated) | Units |
+|---------|----------------------|-------|
+| **BIOL 2960** | Principles of Biology I | **4** |
+| **BIOL 2970** | Principles of Biology II | **4** |
+| **CHEM 1601** *or* **CHEM 1701** | General Chemistry I (Principles of General Chemistry I) | **3** |
+| **CHEM 1602** *or* **CHEM 1702** | General Chemistry II (Principles of General Chemistry II) | **3** |
+| **CHEM 1751** | General Chemistry Laboratory I | **2** |
+| **CHEM 1752** | General Chemistry Laboratory II | **2** |
+| **CHEM 2561** | Organic Chemistry I With Lab | **4** |
+| **CHEM 2562** | Organic Chemistry II With Lab | **4** |
+| **PHYSICS 1740** *or* **PHYSICS 1760** | Physics I (or Focused Physics I) | **3** |
+| **PHYSICS 1741** | Physics I Lab | **1** |
+| **PHYSICS 1742** *or* **PHYSICS 1762** | Physics II (or Focused Physics II) | **3** |
+| **PHYSICS 1743** | Physics II Lab | **1** |
+| **MATH 1510** | Calculus II | **3** |
+| **MATH 2130** *or* **MATH 3020** *or* **SDS 2020** | Calculus III / Elementary‑to‑Intermediate Statistics / Elementary Probability & Statistics | **3** |
+| **Total core‑course units** | | **40** |
+
+These 40 units of coursework are the **core requirements** that every Biology major must complete.  
+
+In addition to the core, the major requires:
+
+* **At least 18 units** of advanced biology courses (numbered 3000 or above).  
+* **One advanced laboratory course** from the approved list.  
+
+The advanced‑biology and advanced‑lab units together bring the total major requirement to **58 units**.
+
+Sources:
+  - Biology Course Offerings: From Foundational Concepts to Specialized Research [Arts & Sciences]
+  - Advanced Biology Course Offerings and Major Requirements [Arts & Sciences]
+  - Biology Major [Arts & Sciences]
+  - Anthropology Course Offerings: Diverse Topics in Human Culture, Environment, and Biology [Arts & Sciences]
+  - Advanced Topics in Anthropology: Language, Culture, Society, and Biology [Arts & Sciences]
+  - Mathematics [Arts & Sciences]

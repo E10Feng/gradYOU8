@@ -1,0 +1,6 @@
+{
+  "model": "MiniMax-M2.7",
+  "messages": [
+    {"role": "user", "content": "Say hi in 3 words"}
+  ]
+}

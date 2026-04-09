@@ -1,0 +1,23 @@
+Length: 1332
+Stripped starts with '{': False
+Contains 'trees': False
+
+--- RAW ---
+<think>The user asks: "A student asks: what are the core classes for the bio major? Here are section titles from the WashU bulletin: - Biology Major - Biology Minor - Chemistry Major - Advanced Topics in Anthropology - Biology Course Offerings Which titles are most relevant? Return ONLY valid JSON with key 'titles': [title1, ...]. Return at most 3. If none match, return {"titles": []}."
+
+We need to pick the titles most relevant to the question "what are the core classes for the bio major?" The relevant section titles would be "Biology Major" (the major description likely includes core classes), "Biology Course Offerings" (lists courses, including core classes maybe), and maybe "Biology Minor"? The student wants core classes for the bio major, so the most relevant are "Biology Major" and "Biology Course Offerings". The third could be "Biology Minor"? Probably not. But maybe "Chemistry Major"? Probably not relevant. So we should return at most three: "Biology Major", "Biology Course Offerings". Possibly also "Biology Minor"? But minor is not core for major. We can exclude it. So we return {"titles": ["Biology Major", "Biology Course Offerings"]}.
+
+Make sure JSON is valid. So final answer: {"titles": ["Biology Major", "Biology Course Offerings"]}.
+</think>
+
+{"titles": ["Biology Major", "Biology Course Offerings"]}
+
+--- STRIPPED ---
+The user asks: "A student asks: what are the core classes for the bio major? Here are section titles from the WashU bulletin: - Biology Major - Biology Minor - Chemistry Major - Advanced Topics in Anthropology - Biology Course Offerings Which titles are most relevant? Return ONLY valid JSON with key 'titles': [title1, ...]. Return at most 3. If none match, return {"titles": []}."
+
+We need to pick the titles most relevant to the question "what are the core classes for the bio major?" The relevant section titles would be "Biology Major" (the major description likely includes core classes), "Biology Course Offerings" (lists courses, including core classes maybe), and maybe "Biology Minor"? The student wants core classes for the bio major, so the most relevant are "Biology Major" and "Biology Course Offerings". The third could be "Biology Minor"? Probably not. But maybe "Chemistry Major"? Probably not relevant. So we should return at most three: "Biology Major", "Biology Course Offerings". Possibly also "Biology Minor"? But minor is not core for major. We can exclude it. So we return {"titles": ["Biology Major", "Biology Course Offerings"]}.
+
+Make sure JSON is valid. So final answer: {"titles": ["Biology Major", "Biology Course Offerings"]}.
+
+
+{"titles": ["Biology Major", "Biology Course Offerings"]}

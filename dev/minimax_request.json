@@ -1,0 +1,10 @@
+{
+  "model": "MiniMax-M2.7",
+  "max_tokens": 1024,
+  "messages": [
+    {
+      "role": "user",
+      "content": "You are a helpful assistant answering questions about Washington University in St. Louis Arts and Sciences bulletin course requirements.\n\nQuestion: What are the computer science class requirements for the computation and genomics specialization of the biology major\n\nContext from the bulletin (most relevant nodes):\n\nNode 0158 (score=40) — Biology Major, Genomics and Computational Biology Specialization:\nThe specialization requires: Total 64 units (including biology major requirements). Additional requirements include:\n- An advanced genomics/computational biology elective (BIOL 3240, BIOL 4183, BIOL 4344, BIOL 5480, or BIOL 5488)\n- Statistics (SDS 2200 or SDS 3200)\n- Two outside electives: CSE 1301 and CSE 2407\n- CSE 2400 is strongly recommended as well\n- The advanced laboratory course must be BIOL 3492, BIOL 3493, BIOL 4220, BIOL 4342, BIOL 4343, BIOL 4346, BIOL 4522, or BIOL 4525\n- Biology courses recommended: BIOL 3340, BIOL 3422, BIOL 3490, BIOL 4030, BIOL 4181, BIOL 4183, BIOL 4510\n- Recommended mathematics electives: MATH 2500 and MATH 3300\n\nNode 0116 (score=16) — BIOL 4220 Practical Bioinformatics:\nCovers: UNIX operating system, shell scripting, Python programming, designing research workflows, problem decomposition, scientific computing. Prerequisites: Biol 2970, Math 132, Math 223 or Math 2200, CSE 131 (suggested).\n\nNode 0125 (score=9) — BIOL 4342 Research Explorations in Genomics:\nCovers: comparative genomics, bioinformatics tools, genomic sequences, gene predictions, sequence conservation, gene expression.\n\nNode 0156 (score=7) — Biology Major Program Requirements:\n58 total units. 40 units of foundational courses. 18 units of advanced biology. Advanced lab required. Three area distribution required.\n\nPlease answer the question based on this context."
+    }
+  ]
+}

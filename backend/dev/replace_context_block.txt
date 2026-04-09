@@ -1,0 +1,43 @@
+    context_blocks = []
+    sources = []
+    seen = set()
+
+    for node in matched:
+        title = node.get("title", "")
+        text = node.get("text", "")
+        if title not in seen and len(text) > 200:
+            seen.add(title)
+            snippet = text[:5000]
+            context_blocks.append("[" + title + "]\n" + snippet)
+            sources.append({"title": title, "page_range": "", "text": snippet[:500]})
+
+    # ── Step 4: keyword fallback ──────────────────────────────────────────────
+    kw_key = " ".join(query_keywords)
+
+    def kw_search(nodes, kw_str, results=None):
+        if results is None:
+            results = []
+        for node in nodes:
+            text = (node.get("text") or "").lower()
+            title = (node.get("title") or "").lower()
+            score = sum(1 for kw in kw_str.split() if kw in title or kw in text)
+            if score >= 2 and len(node.get("text") or "") > 500:
+                results.append((score, node.get("title", ""), node.get("text", "")))
+            if node.get("nodes"):
+                kw_search(node["nodes"], kw_str, results)
+        return results
+
+    kw_matches = kw_search(tree.get("structure", []), kw_key.lower())
+    kw_matches.sort(key=lambda x: (-x[0], 0 if any(kw in x[1].lower() for kw in query_keywords) else 1))
+
+    for score, title, text in kw_matches:
+        if title not in seen and len(text) > 200 and len(context_blocks) < 6:
+            seen.add(title)
+            snippet = text[:3000]
+            context_blocks.append("[" + title + "]\n" + snippet)
+            sources.append({"title": title, "page_range": "", "text": snippet[:500]})
+
+    if not context_blocks:
+        return "I couldn't find relevant sections in the bulletin for this question.", []
+
+    context = "\n\n".join(context_blocks)
