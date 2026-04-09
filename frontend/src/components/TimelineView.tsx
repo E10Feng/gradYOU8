@@ -155,7 +155,7 @@ export default function TimelineView({ profile, expandAll = false }: TimelineVie
       )
     }
     return (
-      <div className="text-slate-300 text-sm text-center py-12">
+      <div className="text-sm text-center py-12" style={{ color: 'var(--text-muted)' }}>
         No semester data available.
       </div>
     )
@@ -205,22 +205,23 @@ function SemesterColumn({
       <div className="relative z-10 flex flex-col items-center">
         {showConnector && (
           <div
-            className="absolute top-5 left-[calc(50%+20px)] w-[144px] h-0.5 bg-emerald-400/70 pointer-events-none"
+            className="absolute top-5 left-[calc(50%+20px)] w-[144px] h-0.5 pointer-events-none"
+            style={{ background: 'var(--glass-border-hot)' }}
             aria-hidden="true"
           />
         )}
-        <div className="w-10 h-10 rounded-full bg-emerald-950/45 border-2 border-emerald-500 flex items-center justify-center mb-2">
+        <div className="glass w-10 h-10 rounded-full border-2 flex items-center justify-center mb-2" style={{ borderColor: 'var(--accent)' }}>
           <SeasonIcon season={season} />
         </div>
         <div className="text-center">
-          <p className="text-white font-semibold text-sm">{season}</p>
-          <p className="text-slate-300 text-xs font-mono">{year}</p>
+          <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{season}</p>
+          <p className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>{year}</p>
         </div>
       </div>
 
       {/* Semester GPA */}
       <div className="mt-1 mb-3">
-        <span className={`text-sm font-bold font-mono ${gpa > 0 ? gpaColor(gpa) : 'text-slate-300'}`}>
+        <span className={`text-sm font-bold font-mono ${gpa > 0 ? gpaColor(gpa) : ''}`} style={gpa <= 0 ? { color: 'var(--text-muted)' } : undefined}>
           {gpa > 0 ? gpa.toFixed(2) : '—'}
         </span>
       </div>
@@ -233,7 +234,8 @@ function SemesterColumn({
         {courses.length > 3 && !expandAll && (
           <button
             onClick={() => setExpanded(!expanded)}
-            className="text-xs text-emerald-300 hover:text-emerald-200 text-center py-1 transition"
+            className="text-xs text-center py-1 transition-colors"
+            style={{ color: 'var(--accent)' }}
           >
             {expanded ? 'Show less' : `+${courses.length - 3} more`}
           </button>
@@ -241,7 +243,7 @@ function SemesterColumn({
       </div>
 
       {/* Credits total */}
-      <div className="mt-3 text-xs text-slate-300 text-center">
+      <div className="mt-3 text-xs text-center" style={{ color: 'var(--text-muted)' }}>
         {totalCredits} credits
       </div>
     </div>
@@ -252,15 +254,15 @@ function CourseCard({ course }: { course: Course }) {
   const { id, title, credits, grade } = course
 
   return (
-    <div className="glass-chip border border-emerald-900/40 rounded-3xl px-3 py-2 w-full hover:border-emerald-500/50 transition-colors interactive-lift">
+    <div className="glass rounded-2xl px-3 py-2 w-full interactive-lift" style={{ borderColor: 'var(--glass-border)' }}>
       <div className="flex items-start justify-between gap-1">
         <div className="flex-1 min-w-0">
-          <p className="font-mono text-emerald-300 text-xs font-medium truncate">{id}</p>
-          <p className="text-slate-100 text-xs leading-tight mt-0.5 line-clamp-2">{title}</p>
+          <p className="font-mono text-xs font-medium truncate" style={{ color: 'var(--accent)' }}>{id}</p>
+          <p className="text-xs leading-tight mt-0.5 line-clamp-2" style={{ color: 'var(--text-primary)' }}>{title}</p>
         </div>
         <div className="flex flex-col items-end gap-0.5 shrink-0 ml-1">
           <span className={`text-xs font-bold ${gradeColor(grade)}`}>{grade}</span>
-          <span className="text-slate-300 text-xs">{credits}cr</span>
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{credits}cr</span>
         </div>
       </div>
     </div>

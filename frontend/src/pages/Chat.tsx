@@ -25,7 +25,6 @@ const EXAMPLE_QUESTIONS = [
 ]
 
 function MessageContent({ content }: { content: string }) {
-  // Strip any residual thinking tags before rendering
   const clean = content
     .replace(/<thinking[\s\S]*?<\/thinking>/gi, "")
     .replace(/\[\/?INST\]/gi, "")
@@ -38,20 +37,20 @@ function MessageContent({ content }: { content: string }) {
         table: ({ children }) => (
           <table className="min-w-full text-xs border-collapse overflow-x-auto block">{children}</table>
         ),
-        thead: ({ children }) => <thead className="bg-slate-700/50">{children}</thead>,
-        tbody: ({ children }) => <tbody className="divide-y divide-slate-700">{children}</tbody>,
-        tr: ({ children }) => <tr className="hover:bg-slate-700/30">{children}</tr>,
-        th: ({ children }) => <th className="px-2 py-1 text-left font-medium text-indigo-300">{children}</th>,
-        td: ({ children }) => <td className="px-2 py-1 text-slate-300">{children}</td>,
+        thead: ({ children }) => <thead style={{ background: 'rgba(33, 87, 50, 0.25)' }}>{children}</thead>,
+        tbody: ({ children }) => <tbody style={{ borderColor: 'rgba(33, 87, 50, 0.4)' }} className="divide-y">{children}</tbody>,
+        tr: ({ children }) => <tr className="hover:bg-[rgba(33,87,50,0.2)]">{children}</tr>,
+        th: ({ children }) => <th className="px-2 py-1 text-left font-medium" style={{ color: 'var(--accent)' }}>{children}</th>,
+        td: ({ children }) => <td className="px-2 py-1" style={{ color: 'var(--text-muted)' }}>{children}</td>,
         ul: ({ children }) => <ul className="list-disc list-inside space-y-1 my-2">{children}</ul>,
         ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 my-2">{children}</ol>,
-        li: ({ children }) => <li className="text-slate-300">{children}</li>,
-        strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
+        li: ({ children }) => <li style={{ color: 'var(--text-muted)' }}>{children}</li>,
+        strong: ({ children }) => <strong className="font-semibold" style={{ color: 'var(--text-primary)' }}>{children}</strong>,
         p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-        h1: ({ children }) => <h1 className="text-lg font-bold text-white mt-3 mb-1">{children}</h1>,
-        h2: ({ children }) => <h2 className="text-base font-semibold text-white mt-3 mb-1">{children}</h2>,
-        h3: ({ children }) => <h3 className="text-sm font-semibold text-indigo-300 mt-2 mb-1">{children}</h3>,
-        blockquote: ({ children }) => <blockquote className="border-l-2 border-indigo-500 pl-3 italic text-slate-400">{children}</blockquote>,
+        h1: ({ children }) => <h1 className="text-lg font-bold mt-3 mb-1" style={{ color: 'var(--text-primary)' }}>{children}</h1>,
+        h2: ({ children }) => <h2 className="text-base font-semibold mt-3 mb-1" style={{ color: 'var(--text-primary)' }}>{children}</h2>,
+        h3: ({ children }) => <h3 className="text-sm font-semibold mt-2 mb-1" style={{ color: 'var(--accent)' }}>{children}</h3>,
+        blockquote: ({ children }) => <blockquote className="border-l-2 pl-3 italic" style={{ borderColor: 'var(--accent)', color: 'var(--text-muted)' }}>{children}</blockquote>,
       }}
     >
       {clean}
@@ -67,7 +66,6 @@ export default function Chat() {
   const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  // Load profile from localStorage on mount
   useEffect(() => {
     try {
       const stored = localStorage.getItem('gradYOU8_profile')
@@ -217,13 +215,13 @@ export default function Chat() {
       {/* Header */}
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-1">Ask about WashU requirements</h1>
-          <p className="text-slate-400 text-sm">Powered by vectorless RAG over the WashU Undergraduate Bulletin</p>
+          <h1 className="text-3xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Ask about WashU requirements</h1>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Powered by vectorless RAG over the WashU Undergraduate Bulletin</p>
         </div>
         {profileActive && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/15 border border-indigo-500/30 shrink-0">
+          <div className="glass-chip flex items-center gap-2 px-3 py-1.5 rounded-full shrink-0">
             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs text-indigo-300">
+            <span className="text-xs" style={{ color: 'var(--accent)' }}>
               {studentProfile.student?.name || 'Profile loaded'}
             </span>
           </div>
@@ -236,7 +234,8 @@ export default function Chat() {
           <button
             key={q}
             onClick={() => send(q)}
-            className="text-left px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-sm text-slate-300 hover:border-indigo-500 hover:text-white transition-colors"
+            className="text-left px-3 py-1.5 rounded-full glass-chip text-sm interactive-lift transition-colors"
+            style={{ color: 'var(--text-muted)' }}
           >
             {q}
           </button>
@@ -244,13 +243,15 @@ export default function Chat() {
       </div>
 
       {/* Chat area */}
-      <div className="flex-1 overflow-y-auto no-scrollbar bg-slate-800/50 rounded-2xl p-6 mb-4 space-y-4">
+      <div className="flex-1 overflow-y-auto no-scrollbar glass surface-card rounded-2xl p-6 mb-4 space-y-4">
         {messages.length === 0 && !loading && (
-          <div className="flex flex-col items-center justify-center h-full text-slate-500">
-            <div className="text-4xl mb-3">🎓</div>
+          <div className="flex flex-col items-center justify-center h-full" style={{ color: 'var(--text-muted)' }}>
+            <svg viewBox="0 0 24 24" className="h-10 w-10 mb-3" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: 'var(--accent)' }} aria-hidden="true">
+              <path d="M4.5 6.75A2.25 2.25 0 0 1 6.75 4.5h10.5a2.25 2.25 0 0 1 2.25 2.25v7.5a2.25 2.25 0 0 1-2.25 2.25H10l-4.5 3v-3H6.75A2.25 2.25 0 0 1 4.5 14.25v-7.5Z" />
+            </svg>
             <p className="text-sm">Ask a question above, or type your own below.</p>
             {profileActive && (
-              <p className="text-xs text-indigo-400 mt-2">
+              <p className="text-xs mt-2" style={{ color: 'var(--accent)' }}>
                 Your profile is active — answers will consider your specific courses.
               </p>
             )}
@@ -265,9 +266,9 @@ export default function Chat() {
           <div key={msg.id} className={`flex flex-col gap-2 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
             <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
               msg.role === 'user'
-                ? 'bg-indigo-600 text-white rounded-br-md'
-                : 'bg-slate-800 text-slate-100 rounded-bl-md'
-            }`}>
+                ? 'chat-bubble-user text-white rounded-br-md'
+                : 'glass rounded-bl-md'
+            }`} style={msg.role === 'assistant' ? { color: 'var(--text-primary)' } : undefined}>
               <div className="prose prose-invert prose-sm max-w-none">
                 {msg.role === 'assistant' ? (
                   <MessageContent content={msg.content} />
@@ -278,15 +279,15 @@ export default function Chat() {
             </div>
             {msg.role === 'assistant' && msg.sources && msg.sources.length > 0 && (
               <div className="max-w-[85%] text-xs">
-                <p className="text-slate-500 font-medium mb-2">Sources:</p>
+                <p className="font-medium mb-2" style={{ color: 'var(--text-subtle)' }}>Sources:</p>
                 <div className="space-y-2">
                   {msg.sources.map((s, j) => (
-                    <div key={j} className="bg-slate-800/60 rounded-lg p-3 border border-slate-700">
+                    <div key={j} className="glass rounded-lg p-3">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-indigo-400 font-medium">{s.title}</span>
-                        <span className="text-slate-500 font-mono text-xs">pp. {s.page_range}</span>
+                        <span className="font-medium" style={{ color: 'var(--accent)' }}>{s.title}</span>
+                        <span className="font-mono text-xs" style={{ color: 'var(--text-subtle)' }}>pp. {s.page_range}</span>
                       </div>
-                      <p className="text-slate-400 text-xs line-clamp-2">{s.text}</p>
+                      <p className="text-xs line-clamp-2" style={{ color: 'var(--text-muted)' }}>{s.text}</p>
                     </div>
                   ))}
                 </div>
@@ -297,8 +298,8 @@ export default function Chat() {
         })}
 
         {loading && (
-          <div className="flex items-center gap-2 text-slate-400 text-sm">
-            <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>
+            <div className="w-4 h-4 spinner-green" />
             <span>{statusText || 'Working...'}</span>
           </div>
         )}
@@ -315,13 +316,14 @@ export default function Chat() {
           value={input}
           onChange={e => setInput(e.target.value)}
           placeholder="Ask about any major, minor, or graduation requirement..."
-          className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+          className="flex-1 glass-input rounded-xl px-4 py-3 text-sm"
+          style={{ color: 'var(--text-primary)' }}
           disabled={loading}
         />
         <button
           type="submit"
           disabled={loading || !input.trim()}
-          className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl text-sm font-medium transition-colors"
+          className="glass-button disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl text-sm font-medium"
         >
           Ask
         </button>

@@ -153,8 +153,8 @@ export default function AuditDashboard({ profile }: Props) {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-4">
-        <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-slate-400 text-sm">{progressMsg}</p>
+        <div className="w-8 h-8 spinner-green" />
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{progressMsg}</p>
       </div>
     )
   }
@@ -169,7 +169,7 @@ export default function AuditDashboard({ profile }: Props) {
 
   if (audits.length === 0 && !collegeAudit) {
     return (
-      <div className="text-slate-400 text-sm text-center py-12">
+      <div className="text-sm text-center py-12" style={{ color: 'var(--text-muted)' }}>
         No program audits available. Make sure your transcript was parsed correctly.
       </div>
     )
@@ -180,23 +180,23 @@ export default function AuditDashboard({ profile }: Props) {
   return (
     <div className="flex flex-col gap-8">
       {/* Student summary */}
-      <div className="bg-slate-900 rounded-xl p-6 border border-slate-800 flex flex-wrap gap-6">
+      <div className="glass surface-card rounded-xl p-6 flex flex-wrap gap-6">
         <div>
-          <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Student</p>
-          <p className="text-white font-semibold">{profile.student?.name || 'Unknown'}</p>
-          <p className="text-slate-400 text-xs">{profile.student?.id || ''}</p>
+          <p className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--text-subtle)' }}>Student</p>
+          <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>{profile.student?.name || 'Unknown'}</p>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{profile.student?.id || ''}</p>
         </div>
         <div>
-          <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">GPA</p>
+          <p className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--text-subtle)' }}>GPA</p>
           <p className={`text-2xl font-bold font-mono ${gpaColor}`}>
             {profile.gpa ? profile.gpa.toFixed(2) : 'N/A'}
           </p>
         </div>
         <div>
-          <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Programs</p>
+          <p className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--text-subtle)' }}>Programs</p>
           {profile.programs.map((p, i) => (
-            <p key={i} className="text-white text-sm">
-              {p.name} <span className="text-slate-500 text-xs">({p.type})</span>
+            <p key={i} className="text-sm" style={{ color: 'var(--text-primary)' }}>
+              {p.name} <span className="text-xs" style={{ color: 'var(--text-subtle)' }}>({p.type})</span>
             </p>
           ))}
         </div>
@@ -211,9 +211,9 @@ export default function AuditDashboard({ profile }: Props) {
       {collegeAudit && (
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-slate-800" />
-            <span className="text-xs text-slate-500 uppercase tracking-widest">College Requirements</span>
-            <div className="flex-1 h-px bg-slate-800" />
+            <div className="flex-1 h-px" style={{ background: 'var(--glass-border)' }} />
+            <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-subtle)' }}>College Requirements</span>
+            <div className="flex-1 h-px" style={{ background: 'var(--glass-border)' }} />
           </div>
           <ProgramAuditCard audit={collegeAudit} isCollege />
         </div>
@@ -245,10 +245,10 @@ function ProgramAuditCard({ audit, isCollege = false }: { audit: AuditResult; is
           <h2 className={`font-bold text-white ${isCollege ? 'text-base' : 'text-lg'}`}>
             {audit.program}
           </h2>
-          {audit.school && <p className="text-xs text-slate-500">{audit.school}</p>}
+          {audit.school && <p className="text-xs" style={{ color: 'var(--text-subtle)' }}>{audit.school}</p>}
         </div>
         <div className="flex flex-col items-end">
-          <span className="text-xs text-slate-500 uppercase tracking-wide">Overall</span>
+          <span className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-subtle)' }}>Overall</span>
           <span className={`text-2xl font-bold font-mono ${pctColor}`}>{audit.overall_percent}%</span>
         </div>
       </div>
@@ -260,8 +260,8 @@ function ProgramAuditCard({ audit, isCollege = false }: { audit: AuditResult; is
       ) : (
         <>
           {audit.notes && audit.notes.length > 0 && (
-            <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-lg px-4 py-3 text-indigo-200 text-sm">
-              <p className="text-indigo-300 text-xs uppercase tracking-wide mb-2">Notes</p>
+            <div className="glass rounded-lg px-4 py-3 text-sm" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-xs uppercase tracking-wide mb-2" style={{ color: 'var(--accent)' }}>Notes</p>
               <div className="space-y-1">
                 {audit.notes.slice(0, 6).map((n, idx) => (
                   <p key={idx}>- {n}</p>

@@ -42,16 +42,16 @@ function MessageContent({ content }: { content: string }) {
         tbody: ({ children }) => <tbody className="divide-y divide-emerald-950/60">{children}</tbody>,
         tr: ({ children }) => <tr className="hover:bg-emerald-900/20">{children}</tr>,
         th: ({ children }) => <th className="px-2 py-1 text-left font-medium text-emerald-300">{children}</th>,
-        td: ({ children }) => <td className="px-2 py-1 text-slate-300">{children}</td>,
+        td: ({ children }) => <td className="px-2 py-1" style={{ color: 'var(--text-muted)' }}>{children}</td>,
         ul: ({ children }) => <ul className="list-disc list-inside space-y-1 my-2">{children}</ul>,
         ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 my-2">{children}</ol>,
-        li: ({ children }) => <li className="text-slate-300">{children}</li>,
-        strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
+        li: ({ children }) => <li style={{ color: 'var(--text-muted)' }}>{children}</li>,
+        strong: ({ children }) => <strong className="font-semibold" style={{ color: 'var(--text-primary)' }}>{children}</strong>,
         p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
         h1: ({ children }) => <h1 className="text-lg font-bold text-white mt-3 mb-1">{children}</h1>,
         h2: ({ children }) => <h2 className="text-base font-semibold text-white mt-3 mb-1">{children}</h2>,
         h3: ({ children }) => <h3 className="text-sm font-semibold text-emerald-300 mt-2 mb-1">{children}</h3>,
-        blockquote: ({ children }) => <blockquote className="border-l-2 border-emerald-500 pl-3 italic text-slate-400">{children}</blockquote>,
+        blockquote: ({ children }) => <blockquote className="border-l-2 pl-3 italic" style={{ borderColor: 'var(--accent)', color: 'var(--text-muted)' }}>{children}</blockquote>,
       }}
     >
       {clean}
@@ -204,8 +204,8 @@ export default function ChatSidebar({ profile }: Props) {
     <div className="flex flex-col h-full min-h-0">
       {/* Header */}
       <div className="px-4 pt-4 pb-3">
-        <h2 className="text-white font-semibold text-base tracking-tight mb-1">Degree Advisor</h2>
-        <p className="text-slate-300 text-xs">Ask about your requirements</p>
+        <h2 className="font-semibold text-base tracking-tight mb-1" style={{ color: 'var(--text-primary)' }}>Degree Advisor</h2>
+        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Ask about your requirements</p>
       </div>
 
       {/* Quick questions */}
@@ -215,7 +215,8 @@ export default function ChatSidebar({ profile }: Props) {
             <button
               key={q}
               onClick={() => send(q)}
-              className="text-left px-2.5 py-1 rounded-full glass-chip text-xs text-slate-200 hover:text-white transition-colors interactive-lift"
+              className="text-left px-2.5 py-1 rounded-full glass-chip text-xs transition-colors interactive-lift"
+            style={{ color: 'var(--text-muted)' }}
             >
               {q}
             </button>
@@ -226,7 +227,7 @@ export default function ChatSidebar({ profile }: Props) {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto no-scrollbar px-4 space-y-3">
         {messages.length === 0 && !loading && (
-          <div className="flex flex-col items-center justify-center h-full text-slate-400 py-8">
+          <div className="flex flex-col items-center justify-center h-full py-8" style={{ color: 'var(--text-muted)' }}>
             <div className="mb-2"><ChatIcon /></div>
             <p className="text-xs text-center">Ask about your degree requirements.</p>
           </div>
@@ -240,8 +241,8 @@ export default function ChatSidebar({ profile }: Props) {
           <div key={msg.id} className={`flex flex-col gap-1.5 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
             <div className={`max-w-[90%] rounded-xl px-3 py-2 text-xs ${
               msg.role === 'user'
-                ? 'bg-emerald-600 text-white rounded-br-sm'
-                : 'glass-chip text-slate-100 rounded-bl-sm'
+                ? 'chat-bubble-user text-white rounded-br-sm'
+                : 'glass rounded-bl-sm'
             }`}>
               {msg.role === 'assistant' ? (
                 <MessageContent content={msg.content} />
@@ -254,8 +255,8 @@ export default function ChatSidebar({ profile }: Props) {
         })}
 
         {loading && (
-          <div className="flex items-center gap-2 text-slate-400 text-xs py-2">
-            <div className="w-3 h-3 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+          <div className="flex items-center gap-2 text-xs py-2" style={{ color: 'var(--text-muted)' }}>
+            <div className="w-3 h-3 spinner-green" />
             <span>{statusText || 'Working...'}</span>
           </div>
         )}
@@ -265,7 +266,8 @@ export default function ChatSidebar({ profile }: Props) {
       {/* Input */}
       <form
         onSubmit={e => { e.preventDefault(); send(input) }}
-        className="p-3 border-t border-emerald-900/40"
+        className="p-3 border-t"
+        style={{ borderTopColor: 'var(--glass-border)' }}
       >
         <div className="flex gap-2">
           <input
@@ -273,7 +275,8 @@ export default function ChatSidebar({ profile }: Props) {
             value={input}
             onChange={e => setInput(e.target.value)}
             placeholder="Ask about requirements..."
-            className="flex-1 glass-input rounded-full px-3 py-2 text-xs text-white placeholder-slate-400"
+            className="flex-1 glass-input rounded-full px-3 py-2 text-xs"
+            style={{ color: 'var(--text-primary)' }}
             disabled={loading}
           />
           <button

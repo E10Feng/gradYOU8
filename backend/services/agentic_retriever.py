@@ -1,19 +1,17 @@
 """
-PageIndex-style single-shot tree search + MiniMax hybrid retriever.
+PageIndex single-shot tree search + MiniMax retriever.
 
-Replaces the multi-step tool-calling agentic loop with a proven,
-simpler pattern from PageIndex's LLM Tree Search tutorial:
+3-call pipeline matching PageIndex's canonical pattern:
+  1. Combined LLM call: route to relevant split tree(s) + identify program focus
+  2. Parallel single-shot LLM tree search: each selected tree gets one LLM call
+     that sees the full hierarchical outline and picks node IDs directly
+  3. MiniMax generates the final answer from fetched node text
 
-  1. LLM router selects relevant split tree(s)
-  2. Single-shot LLM call identifies relevant node_ids from the tree structure
-  3. Node text is fetched directly from the tree JSON
-  4. MiniMax generates the final answer
-
-This dramatically reduces LLM round-trips (from 5-8 to 3) and eliminates
-fragile tool-call JSON parsing.
+Reduces from 4-5 serial LLM calls to 2-3 with per-tree parallelism.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import re
@@ -163,77 +161,113 @@ def _extract_json_array(text: str) -> list:
 
 
 # ---------------------------------------------------------------------------
-# Step 1: LLM Router — pick relevant split trees
+# Step 1: Combined router + program focus (single LLM call)
 # ---------------------------------------------------------------------------
 
-def _build_router_prompt(query: str, catalog: dict[str, dict[str, Any]]) -> str:
+def _build_router_focus_prompt(query: str, catalog: dict[str, dict[str, Any]]) -> str:
     lines = []
     for tree_id, entry in catalog.items():
         lines.append(f"- {tree_id}: {entry.get('summary', '')[:200]}")
     ctx = "\n".join(lines)
     return (
-        "You are routing a WashU bulletin query to the right tree.\n"
-        f"Available tree IDs: {list(catalog.keys())}\n\n"
-        f"Query: {query}\n\n"
-        f"Trees:\n{ctx}\n\n"
-        "Choose 1-2 tree IDs from the list above. "
-        "Return ONLY valid JSON with actual tree IDs (not placeholders):\n"
-        '{"selected_tree_ids": ["arts_sciences"], "confidence": 0.9}'
+        "You are routing a WashU bulletin query to the correct document trees and identifying "
+        "the program being asked about.\n\n"
+        f"Available trees:\n{ctx}\n\n"
+        f"Student question: \"{query}\"\n\n"
+        "Return ONLY a single JSON object:\n"
+        '{"selected_tree_ids": ["<tree_id>"], "program_name": "", "program_type": "", "retrieval_query": ""}\n\n'
+        "Rules:\n"
+        "- selected_tree_ids: 1-2 IDs from the available list above only.\n"
+        "- program_name: exact WashU program name, or empty string if none.\n"
+        "- program_type: \"major\", \"minor\", or empty string. Only set to \"major\" when "
+        "identifying a degree program (e.g. 'biology major'), NOT when 'major' is an adjective "
+        "(e.g. 'major requirements').\n"
+        "- retrieval_query: if program_name and program_type are set, use "
+        "\"what are the requirements for the <program_name> <program_type>\". "
+        "Otherwise lightly restate the question as a short requirement-focused query.\n"
+        "Return valid JSON only, no explanation."
     )
 
 
-def _route_trees_llm(query: str, catalog: dict[str, dict[str, Any]], model: str) -> tuple[list[str], float]:
+def _route_and_focus(
+    query: str,
+    catalog: dict[str, dict[str, Any]],
+    model: str,
+) -> dict[str, Any]:
+    """Single LLM call that routes to relevant trees AND identifies program focus.
+
+    Returns dict with keys: selected_tree_ids, program_name, program_type, retrieval_query.
+    Falls back to keyword heuristics if the LLM fails or returns invalid tree IDs.
+    """
     from pageindex_agent.utils import ChatGPT_API
-    raw = ChatGPT_API(model, _build_router_prompt(query, catalog), stream=False) or ""
+
+    def _keyword_fallback() -> dict[str, Any]:
+        ql = query.lower()
+        is_policy = any(k in ql for k in ["policy", "pass/fail", "grade", "deadline", "residency", "credit"])
+        is_program = any(k in ql for k in ["major", "minor", "requirement", "program", "degree"])
+        if is_policy:
+            order = ["university", "cross_school", "arts_sciences", "engineering", "business", "architecture", "art"]
+        elif is_program:
+            order = ["arts_sciences", "engineering", "cross_school", "business", "architecture", "art", "university"]
+        else:
+            order = ["arts_sciences", "engineering", "university", "cross_school", "business", "architecture", "art"]
+        return {
+            "selected_tree_ids": [tid for tid in order if tid in catalog][:3],
+            "program_name": "",
+            "program_type": "",
+            "retrieval_query": query,
+        }
+
+    prompt = _build_router_focus_prompt(query, catalog)
     try:
+        raw = ChatGPT_API(model, prompt, stream=False) or ""
+        raw = re.sub(r"<think>[\s\S]*?</think>", "", raw, flags=re.IGNORECASE)
+        raw = re.sub(r"<thinking[\s\S]*?</thinking>", "", raw, flags=re.IGNORECASE)
         parsed = _extract_first_json_object(raw)
     except AgenticParseError:
-        print(f"[retriever] router parse fail, retrying. sample={raw[:200]!r}")
-        retry_prompt = (
-            _build_router_prompt(query, catalog)
-            + "\n\nIMPORTANT: Output only a single valid JSON object, no explanation."
-        )
-        raw2 = ChatGPT_API(model, retry_prompt, stream=False) or ""
-        parsed = _extract_first_json_object(raw2)
+        print("[retriever] router parse fail, using keyword fallback")
+        return _keyword_fallback()
+    except Exception as e:
+        print(f"[retriever] router call failed: {e}, using keyword fallback")
+        return _keyword_fallback()
+
     raw_ids = parsed.get("selected_tree_ids", [])
     selected = [x for x in raw_ids if isinstance(x, str) and x in catalog]
-    confidence = float(parsed.get("confidence", 0.0) or 0.0)
     if not selected:
-        print(f"[retriever] router returned invalid ids: {raw_ids!r}, valid catalog keys: {list(catalog.keys())}")
-        raise AgenticParseError("Router selected no trees")
-    return selected[:2], confidence
+        print(f"[retriever] router returned invalid ids: {raw_ids!r}, using keyword fallback")
+        return _keyword_fallback()
 
+    program_name = str(parsed.get("program_name", "") or "").strip()
+    program_type = str(parsed.get("program_type", "") or "").strip().lower()
+    if program_type not in {"major", "minor"}:
+        program_type = ""
 
-def route_trees(query: str, catalog: dict[str, dict[str, Any]], model: str) -> list[str]:
-    """Route query to relevant trees with deterministic fallback."""
-    try:
-        selected, confidence = _route_trees_llm(query, catalog, model)
-        print(f"[retriever] route llm selected={selected} conf={confidence:.2f}")
-        if confidence >= 0.35:
-            return selected
-    except (AgenticParseError, Exception) as e:
-        print(f"[retriever] route llm failed: {e}")
-
-    ql = query.lower()
-    is_program_query = any(k in ql for k in ["major", "minor", "requirement", "program", "degree"])
-    is_policy_query = any(k in ql for k in ["policy", "pass/fail", "grade", "deadline", "residency", "credit"])
-
-    if is_policy_query:
-        fallback_order = ["university", "cross_school", "arts_sciences", "engineering", "business", "architecture", "art"]
-    elif is_program_query:
-        fallback_order = ["arts_sciences", "engineering", "cross_school", "business", "architecture", "art", "university"]
+    # Build a clean retrieval query
+    if program_name and program_type:
+        name_tail = program_name.lower().rstrip(". ")
+        if name_tail.endswith(program_type) or name_tail.endswith(", b.a") or name_tail.endswith(", b.s"):
+            retrieval_query = f"what are the requirements for the {program_name}"
+        else:
+            retrieval_query = f"what are the requirements for the {program_name} {program_type}"
     else:
-        fallback_order = ["arts_sciences", "engineering", "university", "cross_school", "business", "architecture", "art"]
+        retrieval_query = str(parsed.get("retrieval_query", "") or "").strip() or query
 
-    return [tid for tid in fallback_order if tid in catalog][:3]
+    result = {
+        "selected_tree_ids": selected[:2],
+        "program_name": program_name,
+        "program_type": program_type,
+        "retrieval_query": retrieval_query,
+    }
+    print(f"[retriever] router: trees={selected[:2]} program={program_name!r} type={program_type!r}")
+    return result
 
 
 # ---------------------------------------------------------------------------
-# Step 2: Single-shot LLM tree search (PageIndex pattern)
+# Step 2: Single-shot LLM tree search (PageIndex canonical pattern)
 # ---------------------------------------------------------------------------
 
 def _prepare_tree_for_search(structure: list[dict], max_depth: int = 4) -> str:
-    """Format tree as a compact structure with node_ids for the LLM.
+    """Format tree as a compact hierarchical outline with node_ids for the LLM.
 
     Strips raw text to save context window, keeping only titles, node_ids,
     page ranges, and child counts. Summaries are included only for
@@ -288,6 +322,9 @@ _QUERY_EXPANSIONS = [
     (r"\bpoli\s*sci\b", "political science"),
     (r"\bpsych\b", "psychology"),
     (r"\banthro\b", "anthropology"),
+    # Earth science → full WashU department name for keyword matching
+    (r"\bearth\s+sci\w*", "earth environmental and planetary sciences"),
+    (r"\beeps\b", "earth environmental and planetary sciences"),
 ]
 
 
@@ -297,90 +334,6 @@ def _expand_query(query: str) -> str:
     for pattern, replacement in _QUERY_EXPANSIONS:
         q = re.sub(pattern, replacement, q)
     return q
-
-
-def _infer_program_focus(query: str, model: str = "MiniMax-M2.7") -> dict:
-    """
-    Identify the exact program target from a natural-language question.
-    Returns a dict with keys: program_name, program_type, retrieval_query.
-    """
-    q = (query or "").strip()
-    if not q:
-        return {}
-
-    from pageindex_agent.utils import ChatGPT_API
-
-    prompt = (
-        "Extract the target WashU program from the student question.\n"
-        "Return ONLY JSON with keys:\n"
-        '{"program_name":"", "program_type":"major|minor|", "retrieval_query":""}\n'
-        "Rules:\n"
-        "- If the question asks about a minor, program_type must be 'minor'.\n"
-        "- If the question asks about a major, program_type must be 'major'.\n"
-        "- IMPORTANT: The word 'major' in phrases like 'major requirements' or "
-        "'key requirements' is an ADJECTIVE, not a program type. Only set "
-        "program_type='major' when it identifies a degree program "
-        "(e.g. 'biology major', 'the major in computer science').\n"
-        "- retrieval_query must be short and requirement-focused:\n"
-        "  'what are the requirements for the <program_name> <program_type>'\n"
-        "- If unknown, return empty strings.\n\n"
-        f"Question: {q}"
-    )
-    try:
-        raw = ChatGPT_API(model, prompt, stream=False) or ""
-        raw = re.sub(r"<think>[\s\S]*?</think>", "", raw, flags=re.IGNORECASE)
-        raw = re.sub(r"<thinking[\s\S]*?</thinking>", "", raw, flags=re.IGNORECASE)
-        parsed = _extract_first_json_object(raw)
-        if not isinstance(parsed, dict):
-            return {}
-        pname = str(parsed.get("program_name", "") or "").strip()
-        ptype = str(parsed.get("program_type", "") or "").strip().lower()
-        rq = str(parsed.get("retrieval_query", "") or "").strip()
-        if ptype not in {"major", "minor"}:
-            ptype = ""
-        return {"program_name": pname, "program_type": ptype, "retrieval_query": rq}
-    except Exception:
-        return {}
-
-
-def _derive_retrieval_query(
-    query: str,
-    model: str = "MiniMax-M2.7",
-    focus: dict | None = None,
-) -> str:
-    """
-    Dedicated prompt-scanner step (separate LLM call) that returns a focused
-    retrieval query. Falls back to original query if scanner output is empty.
-
-    Pass `focus` from a prior `_infer_program_focus` call to avoid a second
-    redundant scanner LLM call (which can return inconsistent results).
-    """
-    q = (query or "").strip()
-    if not q:
-        return q
-
-    f = focus if isinstance(focus, dict) else _infer_program_focus(q, model=model)
-    rq = (f.get("retrieval_query", "") if isinstance(f, dict) else "") or ""
-    if rq:
-        return rq
-
-    return q
-
-
-def _exact_requirements_query(focus: dict, fallback_query: str) -> str:
-    """Force exact query shape: requirements for <program> <major/minor>."""
-    if not isinstance(focus, dict):
-        return fallback_query
-    program_name = str(focus.get("program_name", "") or "").strip()
-    program_type = str(focus.get("program_type", "") or "").strip().lower()
-    if program_name and program_type in {"major", "minor"}:
-        # Don't append program_type if program_name already ends with it —
-        # avoids "...biology major major" when the LLM includes the type in the name.
-        name_tail = program_name.lower().rstrip(". ")
-        if name_tail.endswith(program_type) or name_tail.endswith(", b.a") or name_tail.endswith(", b.s"):
-            return f"what are the requirements for the {program_name}"
-        return f"what are the requirements for the {program_name} {program_type}"
-    return fallback_query
 
 
 def _query_terms(query: str) -> tuple[list[str], list[str]]:
@@ -444,7 +397,7 @@ def _pick_hierarchical_nodes(
     max_nodes: int = 6,
 ) -> tuple[list[tuple[int, str, dict]], list[dict]]:
     """
-    Two-step hierarchical retrieval:
+    Two-step hierarchical retrieval used as the keyword fallback path:
       1) Pick top branches (non-leaf nodes) across split trees.
       2) Pick best leaves from those branches.
     """
@@ -458,13 +411,11 @@ def _pick_hierarchical_nodes(
         for root in structure:
             first_level = root.get("nodes") or []
             if not first_level:
-                # Handle trees that are already flat.
                 score = _score_node(root, terms, type_words)
                 if score >= 3:
                     branch_candidates.append((score, tree_id, root, root.get("title", "")))
                 continue
             for child in first_level:
-                # Branch score is based on BOTH branch metadata and best descendant leaf.
                 direct_score = _score_node(child, terms, type_words)
                 best_leaf_score = 0
                 for d in _walk_descendants(child):
@@ -492,7 +443,6 @@ def _pick_hierarchical_nodes(
                 continue
             score = _score_node(node, terms, type_words)
             if score >= 3:
-                # Mild boost for nodes directly under the chosen branch.
                 score += 2 if node in (branch.get("nodes") or []) else 0
                 leaf_candidates.append((score, tree_id, node))
                 local_count += 1
@@ -505,7 +455,6 @@ def _pick_hierarchical_nodes(
 
     leaf_candidates.sort(key=lambda x: x[0], reverse=True)
 
-    # Deduplicate by node_id while preserving score order.
     deduped: list[tuple[int, str, dict]] = []
     seen_ids: set[str] = set()
     for score, tree_id, node in leaf_candidates:
@@ -521,11 +470,7 @@ def _pick_hierarchical_nodes(
 
 
 def _keyword_candidates(structure: list[dict], query: str, max_results: int = 12) -> list[dict]:
-    """Fast keyword search over node titles, summaries, and text to find candidates.
-
-    This is the "value function" in PageIndex's hybrid search — instant,
-    no LLM calls required. Returns scored candidate nodes.
-    """
+    """Fast keyword search over node titles, summaries, and text to find candidates."""
     terms, type_words = _query_terms(query)
 
     if not terms:
@@ -536,11 +481,9 @@ def _keyword_candidates(structure: list[dict], query: str, max_results: int = 12
     def walk(nodes: list[dict]):
         for node in nodes:
             score = _score_node(node, terms, type_words)
-
             if score >= 3:
                 node["_kw_score"] = score
                 candidates.append((score, node))
-
             children = node.get("nodes") or []
             if children:
                 walk(children)
@@ -550,77 +493,80 @@ def _keyword_candidates(structure: list[dict], query: str, max_results: int = 12
     return [node for _, node in candidates[:max_results]]
 
 
-def _llm_select_from_candidates(
-    query: str,
-    candidates: list[dict],
+def _single_shot_tree_search(
+    tree_id: str,
+    entry: dict[str, Any],
+    retrieval_query: str,
     model: str,
 ) -> list[str]:
-    """LLM picks the most relevant nodes from keyword-filtered candidates.
+    """PageIndex canonical pattern: feed the full tree outline to the LLM, get node IDs back.
 
-    Much faster than searching the entire tree — candidates list is small.
+    The LLM sees the complete hierarchical structure and can navigate parent-child
+    relationships — unlike keyword pre-filtering which misses nodes with non-obvious titles.
+    Falls back to keyword scoring if the LLM call fails or returns nothing.
     """
     from pageindex_agent.utils import ChatGPT_API
 
-    # Build compact candidate list for the LLM
-    items = []
-    for node in candidates:
-        nid = node.get("node_id", "")
-        title = (node.get("title") or "").replace("&#39;", "'").replace("&amp;", "&")
-        start = node.get("start_index", 0)
-        end = node.get("end_index", start)
-        summary = (node.get("summary") or "").strip().replace("\n", " ")[:150]
-        text_preview = (node.get("text") or "").strip()[:200].replace("\n", " ")
-        items.append(
-            f"[{nid}] {title} (pages {start}-{end})\n"
-            f"  Summary: {summary}\n"
-            f"  Preview: {text_preview}"
-        )
+    structure = entry.get("structure") or []
+    label = entry.get("label", tree_id)
+    tree_outline = _prepare_tree_for_search(structure)
 
-    candidates_text = "\n\n".join(items)
-
-    prompt = f"""Select the nodes most likely to answer this question about the WashU bulletin.
-
-Question: {query}
-
-Candidate nodes:
-{candidates_text}
-
-Select 2-5 node IDs that best answer the question. Prefer nodes with specific program requirements over general overviews.
-
-Reply ONLY with JSON: {{"node_list": ["node_id1", "node_id2"]}}"""
-
-    raw = ChatGPT_API(model, prompt, stream=False) or ""
-    raw = re.sub(r"<think>[\s\S]*?</think>", "", raw, flags=re.IGNORECASE)
-    raw = re.sub(r"<thinking[\s\S]*?</thinking>", "", raw, flags=re.IGNORECASE)
-
-    try:
-        parsed = _extract_first_json_object(raw)
-        ids = parsed.get("node_list", parsed.get("node_ids", []))
-        if isinstance(ids, list):
-            return [str(nid) for nid in ids if nid]
-    except AgenticParseError:
-        pass
-
-    # Fallback: return top candidates by score
-    return [n.get("node_id", "") for n in candidates[:4] if n.get("node_id")]
-
-
-def _hybrid_search(query: str, structure: list[dict], model: str) -> list[str]:
-    """PageIndex-style hybrid search: keyword pre-filter + LLM selection.
-
-    1. Instant keyword search finds candidate nodes
-    2. LLM selects the most relevant from candidates
-    """
-    candidates = _keyword_candidates(structure, query)
-    print(f"[retriever] keyword_candidates={len(candidates)} titles={[c.get('title','')[:40] for c in candidates[:5]]}")
-
-    if not candidates:
+    if not tree_outline.strip():
         return []
 
-    if len(candidates) <= 4:
-        return [n.get("node_id", "") for n in candidates if n.get("node_id")]
+    prompt = (
+        f"You are selecting the most relevant sections from the WashU Undergraduate Bulletin "
+        f"({label}) to answer a student's question.\n\n"
+        f"Question: \"{retrieval_query}\"\n\n"
+        f"Bulletin section outline:\n{tree_outline}\n\n"
+        "Each line: [node_id] Title (pages X-Y, N children) — summary\n\n"
+        "Select 2-5 node_ids that most directly contain the answer. "
+        "Prefer nodes with specific requirement tables over general descriptions. "
+        "If a parent node clearly contains the requirement text, select the parent "
+        "rather than every individual child.\n\n"
+        "Reply ONLY with a JSON array of node IDs: [\"node_id1\", \"node_id2\"]"
+    )
 
-    return _llm_select_from_candidates(query, candidates, model)
+    try:
+        raw = ChatGPT_API(model, prompt, stream=False) or ""
+        raw = re.sub(r"<think>[\s\S]*?</think>", "", raw, flags=re.IGNORECASE)
+        raw = re.sub(r"<thinking[\s\S]*?</thinking>", "", raw, flags=re.IGNORECASE)
+        ids = _extract_json_array(raw)
+        valid = [str(nid) for nid in ids if nid and str(nid).strip()]
+        if valid:
+            print(f"[retriever] single_shot tree={tree_id} selected={valid[:5]}")
+            return valid
+    except Exception as e:
+        print(f"[retriever] single_shot tree={tree_id} failed: {e}, falling back to keywords")
+
+    # Fallback: keyword scoring
+    candidates = _keyword_candidates(structure, retrieval_query, max_results=4)
+    return [n.get("node_id", "") for n in candidates if n.get("node_id")]
+
+
+async def _parallel_tree_search(
+    search_catalog: dict[str, dict[str, Any]],
+    retrieval_query: str,
+    model: str,
+) -> list[str]:
+    """Run _single_shot_tree_search for each selected tree concurrently.
+
+    Uses asyncio.to_thread so the synchronous ChatGPT_API HTTP calls run in
+    parallel thread pool workers — wall-clock time becomes max(T_tree1, T_tree2)
+    instead of T_tree1 + T_tree2.
+    """
+    tasks = [
+        asyncio.to_thread(_single_shot_tree_search, tid, entry, retrieval_query, model)
+        for tid, entry in search_catalog.items()
+    ]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    all_ids: list[str] = []
+    for tid, result in zip(search_catalog.keys(), results):
+        if isinstance(result, Exception):
+            print(f"[retriever] parallel search failed for {tid}: {result}")
+            continue
+        all_ids.extend(result)
+    return all_ids
 
 
 # ---------------------------------------------------------------------------
@@ -662,6 +608,42 @@ def _get_node_text(node: dict) -> str:
     return ""
 
 
+_REQUIREMENTS_HEADERS = [
+    "major requirements",
+    "program requirements",
+    "degree requirements",
+    "requirements for the major",
+    "requirements for the minor",
+    "minor requirements",
+    "course requirements",
+    "total units required",
+]
+
+
+def _extract_relevant_slice(text: str, cap: int) -> str:
+    """Return the most relevant slice of a long node's text.
+
+    For nodes where requirement details are buried after thousands of characters
+    of course listings, find the earliest section header that signals structured
+    requirement content and start the excerpt from there instead of position 0.
+    """
+    if len(text) <= cap:
+        return text
+
+    text_l = text.lower()
+    best_pos = len(text)
+    for header in _REQUIREMENTS_HEADERS:
+        idx = text_l.find(header)
+        if 0 < idx < best_pos:
+            best_pos = idx
+
+    if best_pos < len(text) - 100:
+        start = max(0, best_pos - 100)
+        return text[start : start + cap]
+
+    return text[:cap]
+
+
 def _fetch_evidence(structure: list[dict], node_ids: list[str]) -> tuple[str, list[dict]]:
     """Fetch text for the given node_ids and return (combined_text, sources)."""
     target_set = set(node_ids)
@@ -669,7 +651,8 @@ def _fetch_evidence(structure: list[dict], node_ids: list[str]) -> tuple[str, li
 
     texts: list[str] = []
     sources: list[dict] = []
-    char_budget = 24000
+    char_budget = 32000
+    per_node_cap = 20000
 
     for node in nodes:
         if sum(len(t) for t in texts) >= char_budget:
@@ -682,7 +665,8 @@ def _fetch_evidence(structure: list[dict], node_ids: list[str]) -> tuple[str, li
         end = node.get("end_index", start)
 
         remain = char_budget - sum(len(t) for t in texts)
-        node_text = text[:min(remain, 8000)]
+        cap = min(remain, per_node_cap)
+        node_text = _extract_relevant_slice(text, cap)
         texts.append(f"[{title}, pages {start}-{end}]\n{node_text}")
         sources.append({
             "title": title,
@@ -698,11 +682,7 @@ def _fetch_evidence(structure: list[dict], node_ids: list[str]) -> tuple[str, li
 # ---------------------------------------------------------------------------
 
 def _generate_answer(query: str, evidence_text: str, model: str) -> str:
-    """Generate a final answer from the fetched evidence.
-
-    Handles both plain queries and queries with [STUDENT CONTEXT] blocks.
-    Directly answers the user's question without an intermediate requirements-dump step.
-    """
+    """Generate a final answer from the fetched evidence."""
     if not evidence_text.strip():
         return "I couldn't find specific information about that in the WashU Undergraduate Bulletin."
 
@@ -737,7 +717,7 @@ def _generate_answer(query: str, evidence_text: str, model: str) -> str:
         f"{disambiguation}"
         f"{student_ctx_note}\n"
         f'Student question: "{query}"\n\n'
-        f"Bulletin content:\n{evidence_text[:18000]}\n\n"
+        f"Bulletin content:\n{evidence_text[:24000]}\n\n"
         "Answer:"
     )
 
@@ -749,50 +729,6 @@ def _generate_answer(query: str, evidence_text: str, model: str) -> str:
         return response.strip()
     except Exception:
         return "I had trouble generating an answer. Please try rephrasing your question."
-
-
-def _compare_requirements_to_user_query(original_query: str, requirements_answer: str, model: str) -> str:
-    """Third LLM call: use requirements output to answer the original user question."""
-    from pageindex_agent.utils import ChatGPT_API
-
-    req_l = (requirements_answer or "").lower()
-    strict_rules = (
-        "Critical grounding rules:\n"
-        "- Treat the requirements lookup result as the ONLY source of truth.\n"
-        "- Do NOT add requirements that are not explicitly present in that result.\n"
-        "- Do NOT import rules from similarly named programs (e.g., second major tracks).\n"
-        "- If the lookup result already lists course codes and units, do NOT say the requirements "
-        "are missing or not in the excerpt.\n"
-    )
-    if (
-        "minor in computer science" in req_l
-        or "computer science minor" in req_l
-    ) and "five" in req_l and "core" in req_l and "elective" in req_l:
-        strict_rules += (
-            "- The lookup result defines CS minor as exactly five courses (4 core + 1 elective).\n"
-            "- Therefore, do NOT mention any 4000-level minimum unless it appears explicitly in the lookup result.\n"
-        )
-
-    prompt = (
-        "You are a WashU degree planning assistant.\n"
-        "Use only the requirements lookup result below and the original user question.\n"
-        "If the user listed completed courses, compare them against requirements and say exactly what is still needed.\n"
-        "Use concise bullets with course codes and counts.\n"
-        "If requirements are incomplete in the lookup result, state that clearly.\n\n"
-        f"{strict_rules}\n"
-        f"Original user question:\n{original_query}\n\n"
-        f"Requirements lookup result:\n{requirements_answer[:12000]}\n\n"
-        "Helpful answer:"
-    )
-    try:
-        response = ChatGPT_API(model, prompt, stream=False) or ""
-        response = re.sub(r"<thinking[\s\S]*?</thinking>", "", response, flags=re.IGNORECASE)
-        response = re.sub(r"<think>[\s\S]*?</think>", "", response, flags=re.IGNORECASE)
-        response = re.sub(r"\[/?INST\]", "", response, flags=re.IGNORECASE)
-        cleaned = response.strip()
-        return cleaned if cleaned else requirements_answer
-    except Exception:
-        return requirements_answer
 
 
 # ---------------------------------------------------------------------------
@@ -808,10 +744,7 @@ def _gather_tree_evidence(
     char_budget: int = 24000,
     per_node_cap: int = 8000,
 ) -> tuple[str, list[dict], list[dict], dict[str, Any]]:
-    """
-    Hierarchical node pick + text assembly. Kept in sync with chat (agentic_retrieve)
-    so audit/requirements extraction sees the same evidence shape and budgets.
-    """
+    """Keyword-only hierarchical node pick. Used as fallback when LLM search returns nothing."""
     top, branch_diag = _pick_hierarchical_nodes(catalog, query, max_branches=max_branches, max_nodes=max_nodes)
 
     all_texts: list[str] = []
@@ -865,30 +798,22 @@ def _merge_gather_evidence(
 
 def agentic_retrieve(query: str, profile: dict | None = None, model: str = "MiniMax-M2.7") -> AgenticResult:
     """
-    3-step retrieval pipeline adopting PageIndex's hybrid search pattern:
-      Step 1 (LLM): Identify which major/minor the query is about.
-      Step 2 (LLM x2): Route to relevant split tree(s), then hybrid search
-                        (keyword candidates → LLM node selection) within those trees.
-      Step 3 (LLM): Generate a direct answer from the fetched evidence.
+    3-call retrieval pipeline matching PageIndex's canonical pattern:
+
+      Step 1 (LLM): Combined router + program focus — picks relevant trees and
+                    derives a precise retrieval query in a single call.
+      Step 2 (LLM, parallel): Single-shot tree search — each selected tree gets
+                    one LLM call that sees the full hierarchical outline and picks
+                    node IDs directly. Per-tree calls run in parallel via asyncio.
+      Step 3 (LLM): Generate the final answer from fetched node text.
     """
     start_time = time.time()
 
-    # ------------------------------------------------------------------
-    # Step 1 — Identify the program the user is asking about
-    # ------------------------------------------------------------------
-    print("[retriever] step1: identifying program focus")
-    scanner = _infer_program_focus(query, model=model)
-    program_name = str(scanner.get("program_name", "") or "").strip()
-    program_type = str(scanner.get("program_type", "") or "").strip().lower()
+    catalog = load_split_tree_catalog()
+    if not catalog:
+        raise AgenticToolError("No split trees available")
 
-    if program_name and program_type in {"major", "minor"}:
-        retrieval_query = f"what are the requirements for the {program_name} {program_type}"
-    else:
-        retrieval_query = query  # fall back to original for general questions
-
-    print(f"[retriever] step1 done: program={program_name!r} type={program_type!r} retrieval_query={retrieval_query!r}")
-
-    # Augment the answer query with student context when available
+    # Augment answer query with student context when available
     answer_query = query
     if profile:
         student = profile.get("student", {})
@@ -901,27 +826,29 @@ def agentic_retrieve(query: str, profile: dict | None = None, model: str = "Mini
         )
 
     # ------------------------------------------------------------------
-    # Step 2 — Route to relevant trees, then hybrid search within them
+    # Step 1 — Combined router + focus (1 LLM call)
     # ------------------------------------------------------------------
-    catalog = load_split_tree_catalog()
-    if not catalog:
-        raise AgenticToolError("No split trees available")
+    print("[retriever] step1: routing + identifying program focus")
+    router = _route_and_focus(query, catalog, model)
+    selected_tree_ids = router["selected_tree_ids"]
+    retrieval_query = router["retrieval_query"]
+    print(f"[retriever] step1 done: trees={selected_tree_ids} query={retrieval_query!r}")
 
-    # 2a: LLM router — pick 1-2 relevant split trees
-    selected_tree_ids = route_trees(retrieval_query, catalog, model)
     search_catalog = {tid: catalog[tid] for tid in selected_tree_ids if tid in catalog}
     if not search_catalog:
-        search_catalog = catalog  # fallback: search all trees
-    print(f"[retriever] step2 trees selected: {list(search_catalog.keys())}")
+        search_catalog = catalog
 
-    # 2b: Hybrid search — keyword candidates + LLM node selection (PageIndex pattern)
-    all_node_ids: list[str] = []
-    for tid, entry in search_catalog.items():
-        ids = _hybrid_search(retrieval_query, entry["structure"], model)
-        all_node_ids.extend(ids)
-    print(f"[retriever] step2 node_ids found: {all_node_ids[:8]}")
+    # ------------------------------------------------------------------
+    # Step 2 — Parallel single-shot tree search (PageIndex pattern)
+    # ------------------------------------------------------------------
+    print(f"[retriever] step2: single-shot search across {list(search_catalog.keys())}")
+    # asyncio.run is safe here: agentic_retrieve runs in a thread pool worker
+    # (dispatched via loop.run_in_executor from the FastAPI handler), so there
+    # is no running event loop in this thread.
+    all_node_ids = asyncio.run(_parallel_tree_search(search_catalog, retrieval_query, model))
+    print(f"[retriever] step2 node_ids: {all_node_ids[:8]}")
 
-    # 2c: Fetch text for selected node_ids
+    # Fetch text for selected node_ids
     all_texts: list[str] = []
     all_sources: list[dict] = []
     seen_ids: set[str] = set()
@@ -935,24 +862,21 @@ def agentic_retrieve(query: str, profile: dict | None = None, model: str = "Mini
             for s in ev_sources:
                 s["tree_id"] = tid
             all_sources.extend(ev_sources)
-            for s in ev_sources:
-                node_id = s.get("node_id", "")
-                if node_id:
-                    seen_ids.add(node_id)
+            seen_ids.update(s.get("title", "") for s in ev_sources)
 
     combined_evidence = "\n\n---\n\n".join(all_texts)[:24000]
 
     if not combined_evidence.strip():
         # Fallback: pure keyword scoring across all trees
-        print("[retriever] step2 hybrid found nothing, falling back to keyword scan")
+        print("[retriever] step2 found nothing, falling back to keyword scan")
         combined_evidence, all_sources, _, _ = _gather_tree_evidence(catalog, retrieval_query, **CHAT_RETRIEVAL_CONFIG)
 
     print(f"[retriever] step2 evidence chars={len(combined_evidence)}, sources={len(all_sources)}")
 
     # ------------------------------------------------------------------
-    # Step 3 — Generate a direct answer from the evidence (single LLM call)
+    # Step 3 — Generate answer (1 LLM call)
     # ------------------------------------------------------------------
-    print("[retriever] step3: generating answer from evidence")
+    print("[retriever] step3: generating answer")
     answer = _generate_answer(answer_query, combined_evidence, model)
 
     import unicodedata
@@ -976,7 +900,7 @@ def agentic_retrieve(query: str, profile: dict | None = None, model: str = "Mini
         answer=answer,
         sources=deduped[:5],
         diagnostics={
-            "scanner": scanner,
+            "router": router,
             "retrieval_query": retrieval_query,
             "selected_trees": list(search_catalog.keys()),
             "node_ids": all_node_ids[:10],
@@ -986,12 +910,41 @@ def agentic_retrieve(query: str, profile: dict | None = None, model: str = "Mini
 
 
 def agentic_collect_evidence(query: str, model: str = "MiniMax-M2.7") -> tuple[str, list[dict], dict[str, Any]]:
-    """Collect raw evidence for requirements extractor / audit — same tree budget as chat."""
+    """Collect raw evidence for requirements extractor / audit.
+
+    Uses pure keyword scoring across all trees — no LLM needed since audit
+    queries are always specific program names that match node titles directly.
+    Uses _fetch_evidence (with _extract_relevant_slice) so requirements buried
+    deep in long nodes are captured correctly.
+    """
     catalog = load_split_tree_catalog()
     if not catalog:
         return "", [], {}
 
-    combined, all_sources, search_diag, branch_diag = _gather_tree_evidence(
-        catalog, query, **CHAT_RETRIEVAL_CONFIG
-    )
-    return combined, all_sources, {"branches": branch_diag, "search": search_diag}
+    # Keyword scan across all trees — score every node, keep top 8
+    scored: list[tuple[int, str, str]] = []  # (score, tree_id, node_id)
+    for tid, entry in catalog.items():
+        candidates = _keyword_candidates(entry["structure"], query, max_results=8)
+        for node in candidates:
+            nid = node.get("node_id", "")
+            if nid:
+                scored.append((node.get("_kw_score", 0), tid, nid))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    top = scored[:8]
+
+    # Group node IDs by tree, fetch text using _extract_relevant_slice
+    by_tree: dict[str, list[str]] = {}
+    for _, tid, nid in top:
+        by_tree.setdefault(tid, []).append(nid)
+
+    all_texts: list[str] = []
+    all_sources: list[dict] = []
+    for tid, node_ids in by_tree.items():
+        ev_text, ev_sources = _fetch_evidence(catalog[tid]["structure"], node_ids)
+        if ev_text.strip():
+            all_texts.append(ev_text)
+            all_sources.extend(ev_sources)
+
+    combined = "\n\n---\n\n".join(all_texts)
+    return combined, all_sources, {}

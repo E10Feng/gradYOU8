@@ -89,14 +89,7 @@ export default function TranscriptUpload({ onProfileLoaded }: Props) {
         onDragOver={e => { e.preventDefault(); setDragging(true) }}
         onDragLeave={() => setDragging(false)}
         onDrop={handleDrop}
-        className={`
-          border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all
-          ${dragging
-            ? 'border-emerald-500 bg-emerald-500/10'
-            : 'border-slate-600 hover:border-emerald-500 hover:bg-slate-800/50'
-          }
-          ${loading ? 'opacity-60 cursor-wait' : ''}
-        `}
+        className={`upload-zone p-10 text-center cursor-pointer${dragging ? ' dragging' : ''}${loading ? ' opacity-60 cursor-wait' : ''}`}
       >
         <input
           ref={inputRef}
@@ -107,23 +100,25 @@ export default function TranscriptUpload({ onProfileLoaded }: Props) {
         />
         {loading ? (
           <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-slate-400 text-sm">Parsing transcript...</p>
+            <div className="w-8 h-8 spinner-green" />
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Parsing transcript...</p>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-3">
-            <div className="text-4xl">📄</div>
+            <svg viewBox="0 0 24 24" className="h-10 w-10" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: 'var(--accent)' }} aria-hidden="true">
+              <path d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+            </svg>
             <div>
-              <p className="text-white font-medium">Drop your transcript PDF here</p>
-              <p className="text-slate-400 text-sm mt-1">or click to browse — PDF only</p>
+              <p className="font-medium" style={{ color: 'var(--text-primary)' }}>Drop your transcript PDF here</p>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>or click to browse — PDF only</p>
             </div>
           </div>
         )}
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">
-          <span className="text-red-400 text-sm">{error}</span>
+        <div className="glass flex items-center gap-2 rounded-lg px-4 py-3" style={{ borderColor: 'rgba(201, 79, 79, 0.35)' }}>
+          <span className="text-sm" style={{ color: 'var(--accent-red)' }}>{error}</span>
         </div>
       )}
     </div>

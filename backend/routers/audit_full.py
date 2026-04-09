@@ -21,6 +21,7 @@ sys.path.insert(0, str(_BACKEND_ROOT))
 
 from services.requirements_extractor import get_requirements, get_college_requirements
 from services.equivalency_resolver import resolve
+from services.agentic_retriever import agentic_collect_evidence
 from pageindex_agent.utils import ChatGPT_API
 
 router = APIRouter(prefix="/api", tags=["audit"])
@@ -213,6 +214,65 @@ def _llm_audit_courses(program: dict, student_courses: list[dict], requirements:
     }
 
 
+def _direct_audit(program: dict, student_courses: list[dict], evidence: str) -> dict:
+    """Single LLM call: raw bulletin evidence + student transcript → audit JSON.
+
+    Replaces the lossy 2-step pipeline (extract groups → match courses).
+    The LLM sees the real bulletin text and the transcript simultaneously.
+    """
+    program_name = program.get("name", "")
+    compact_courses = [
+        {
+            "id": c.get("id", ""),
+            "title": c.get("title", ""),
+            "credits": c.get("credits", 0),
+            "grade": c.get("grade", ""),
+            "variants": sorted(list(_code_variants(c.get("id", ""))))[:3],
+        }
+        for c in student_courses[:150]
+    ]
+    prompt = (
+        f"You are a WashU degree audit assistant. Audit a student's progress toward the {program_name}.\n\n"
+        "BULLETIN REQUIREMENTS (raw text from official WashU bulletin):\n"
+        f"{evidence[:22000]}\n\n"
+        "STUDENT COMPLETED COURSES (id, credits, grade, equivalent code variants):\n"
+        f"{json.dumps(compact_courses, ensure_ascii=True)}\n\n"
+        "Instructions:\n"
+        "1. Identify each named requirement group from the bulletin text above.\n"
+        "2. For each group, match student courses by 'id' or any listed 'variant'.\n"
+        "3. percent = matched_required_courses / total_required_courses * 100 (cap at 100).\n"
+        "4. credit_progress = 'earned_credits/required_credits'.\n"
+        "5. status: SATISFIED=100%, PARTIAL=1-99%, MISSING=0%.\n"
+        "Return ONLY valid JSON:\n"
+        '{"overall_percent":0,"groups":['
+        '{"name":"","status":"SATISFIED|PARTIAL|MISSING","percent":0,'
+        '"satisfied":["course_id"],"remaining":["req_code"],"credit_progress":"x/y"}'
+        "]}"
+    )
+    raw = ChatGPT_API(MINIMAX_MODEL, prompt, stream=False) or ""
+    raw = re.sub(r"<thinking[\s\S]*?</thinking>", "", raw, flags=re.IGNORECASE)
+    raw = re.sub(r"<think>[\s\S]*?</think>", "", raw, flags=re.IGNORECASE)
+    raw = raw.replace("```json", "").replace("```", "")
+    start, end = raw.find("{"), raw.rfind("}")
+    if start == -1 or end <= start:
+        raise ValueError(f"No JSON in LLM audit response: {raw[:200]!r}")
+    parsed = json.loads(raw[start:end + 1])
+    groups = parsed.get("groups", [])
+    overall = int(parsed.get("overall_percent", 0) or 0)
+    if groups and overall == 0:
+        pcts = [int(g.get("percent", 0) or 0) for g in groups if isinstance(g, dict)]
+        if pcts:
+            overall = int(sum(pcts) / len(pcts))
+    return {
+        "program": program_name,
+        "school": program.get("school", ""),
+        "overall_percent": overall,
+        "groups": groups,
+        "notes": [],
+        "audit_mode": "direct",
+    }
+
+
 def _deterministic_audit(program_name: str, requirements: dict, student_courses: list[dict]) -> dict:
     """Fallback: pure code-matching, no LLM comparison call."""
     groups_results: list[dict] = []
@@ -264,27 +324,49 @@ def _sse_audit(event: str, payload: dict) -> str:
 async def _audit_one_program(programs: list[dict], courses: list[dict], prog_name: str) -> dict:
     prog = next((p for p in programs if p.get("name") == prog_name), {"name": prog_name})
 
-    # Step A (LLM, cached): parse structured requirement groups from bulletin
+    # Evidence retrieval — keyword search, no LLM, uses _extract_relevant_slice
     try:
-        requirements = await asyncio.to_thread(
-            get_requirements, prog_name, prog.get("type"), prog.get("school")
-        )
+        retrieval_query = f"what are the requirements for the {prog_name}"
+        evidence, _, _ = await asyncio.to_thread(agentic_collect_evidence, retrieval_query)
     except Exception as e:
         return {
             "program": prog_name,
             "school": prog.get("school", ""),
             "overall_percent": 0,
             "groups": [],
-            "notes": [f"Could not retrieve requirements from bulletin: {e}"],
+            "notes": [f"Evidence retrieval failed: {e}"],
             "audit_mode": "failed",
         }
 
-    # Step B (LLM): match student courses against parsed requirements
+    if not evidence.strip():
+        return {
+            "program": prog_name,
+            "school": prog.get("school", ""),
+            "overall_percent": 0,
+            "groups": [],
+            "notes": ["Program not found in bulletin."],
+            "audit_mode": "failed",
+        }
+
+    # Single LLM call: raw bulletin evidence + student courses → audit result
     try:
-        return await asyncio.to_thread(_llm_audit_courses, prog, courses, requirements)
+        return await asyncio.to_thread(_direct_audit, prog, courses, evidence)
     except Exception as e:
-        print(f"[audit] LLM comparison failed for {prog_name!r}: {e} — using deterministic fallback")
-        return _deterministic_audit(prog_name, requirements, courses)
+        print(f"[audit] direct audit failed for {prog_name!r}: {e} — falling back to 2-step")
+        try:
+            requirements = await asyncio.to_thread(
+                get_requirements, prog_name, prog.get("type"), prog.get("school")
+            )
+            return _deterministic_audit(prog_name, requirements, courses)
+        except Exception as e2:
+            return {
+                "program": prog_name,
+                "school": prog.get("school", ""),
+                "overall_percent": 0,
+                "groups": [],
+                "notes": [f"Audit failed: {e2}"],
+                "audit_mode": "failed",
+            }
 
 
 async def _compute_college_audit(programs: list[dict], courses: list[dict]) -> dict | None:

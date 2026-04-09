@@ -63,10 +63,10 @@ function AuditMarkdown({ text }: { text: string }) {
           <table className="min-w-full text-xs border-collapse overflow-x-auto block">{children}</table>
         ),
         th: ({ children }) => (
-          <th className="border border-slate-500 px-2 py-1 bg-slate-700 text-slate-100 text-left">{children}</th>
+          <th className="border px-2 py-1 text-left" style={{ borderColor: 'var(--glass-border)', background: 'rgba(33,87,50,0.25)', color: 'var(--accent)' }}>{children}</th>
         ),
         td: ({ children }) => (
-          <td className="border border-slate-600 px-2 py-1 align-top text-slate-100">{children}</td>
+          <td className="border px-2 py-1 align-top" style={{ borderColor: 'var(--glass-border)', color: 'var(--text-muted)' }}>{children}</td>
         ),
       }}
     >
@@ -339,31 +339,32 @@ export default function Profile() {
     const gpaColor = gpa >= 3.5 ? 'text-emerald-400' : gpa >= 3.0 ? 'text-amber-400' : 'text-red-400'
 
     return (
-      <div className="glass surface-card rounded-3xl px-6 py-5">
+      <div className="glass surface-card glass-prism rounded-3xl px-6 py-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
           {/* Student info */}
           <div className="flex flex-wrap items-center gap-4">
             <div>
-              <p className="text-white font-semibold text-xl leading-tight tracking-tight">{student.name || 'Unknown'}</p>
-              <p className="text-slate-300 text-xs">ID: {student.id || '—'} · {student.school || '—'}</p>
+              <p className="font-semibold text-xl leading-tight tracking-tight" style={{ color: 'var(--text-primary)' }}>{student.name || 'Unknown'}</p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>ID: {student.id || '—'} · {student.school || '—'}</p>
             </div>
-            <div className="h-8 w-px bg-slate-500/40 hidden sm:block" />
+            <div className="h-8 w-px hidden sm:block" style={{ background: 'var(--glass-border)' }} />
             <div>
-              <p className="text-xs text-slate-400 uppercase tracking-wide mb-0.5">GPA</p>
+              <p className="text-xs uppercase tracking-wide mb-0.5" style={{ color: 'var(--text-subtle)' }}>GPA</p>
               <p className={`text-xl font-bold font-mono ${gpaColor}`}>
                 {gpa ? gpa.toFixed(2) : '—'}
               </p>
             </div>
-            <div className="h-8 w-px bg-slate-500/40 hidden sm:block" />
+            <div className="h-8 w-px hidden sm:block" style={{ background: 'var(--glass-border)' }} />
             <div className="flex flex-wrap gap-1.5">
               {programs.map((p, i) => (
                 <span
                   key={i}
-                  className={`px-2.5 py-1 rounded-full text-xs font-medium border ${
-                    p.type === 'minor'
-                      ? 'bg-emerald-500/8 border-emerald-300/30 text-emerald-100'
-                      : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                  }`}
+                  className="px-2.5 py-1 rounded-full text-xs font-medium"
+                  style={{
+                    background: 'rgba(33, 87, 50, 0.22)',
+                    border: '1px solid rgba(76, 217, 130, 0.28)',
+                    color: 'var(--accent)',
+                  }}
                 >
                   {p.type === 'minor' ? 'Minor' : 'Major'}: {p.name.split(',')[0].split(' with ')[0].trim()}
                 </span>
@@ -375,21 +376,15 @@ export default function Profile() {
           <div className="flex items-center gap-1 glass-chip rounded-full p-1">
             <button
               onClick={() => setView('timeline')}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-medium ${
-                view === 'timeline'
-                  ? 'glass-button text-white'
-                  : 'text-slate-300 hover:text-white'
-              }`}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-medium ${view === 'timeline' ? 'glass-button text-white' : 'transition-colors'}`}
+              style={view !== 'timeline' ? { color: 'var(--text-muted)' } : undefined}
             >
               Timeline
             </button>
             <button
               onClick={() => setView('audit')}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-medium ${
-                view === 'audit'
-                  ? 'glass-button text-white'
-                  : 'text-slate-300 hover:text-white'
-              }`}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-medium ${view === 'audit' ? 'glass-button text-white' : 'transition-colors'}`}
+              style={view !== 'audit' ? { color: 'var(--text-muted)' } : undefined}
             >
               Audit
             </button>
@@ -405,11 +400,12 @@ export default function Profile() {
     return (
       <div>
         <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-slate-400 text-sm">Course progress by semester</h2>
+          <h2 className="text-sm" style={{ color: 'var(--text-muted)' }}>Course progress by semester</h2>
           <button
             type="button"
             onClick={() => setTimelineExpandAll(prev => !prev)}
-            className="text-xs px-3 py-1.5 rounded-full glass-chip text-slate-200 hover:text-white transition-colors"
+            className="text-xs px-3 py-1.5 rounded-full glass-chip transition-colors"
+            style={{ color: 'var(--text-muted)' }}
           >
             {timelineExpandAll ? 'Collapse all courses' : 'Expand all courses'}
           </button>
@@ -428,14 +424,14 @@ export default function Profile() {
       const shortLabel = (s: string) => s.split(',')[0].split(' with ')[0].trim()
       return (
         <div className="glass surface-card rounded-2xl p-6 space-y-5 max-w-2xl">
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-700/60">
-            <div className="h-full w-2/5 max-w-[70%] rounded-full bg-emerald-500/80 motion-safe:animate-pulse" />
+          <div className="progress-track h-1.5 w-full glass-shimmer">
+            <div className="h-full progress-fill" style={{ width: '40%', maxWidth: '70%' }} />
           </div>
           <div>
-            <p className="text-white text-sm font-medium">
+            <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
               {auditProgress?.message || 'Running degree audit…'}
             </p>
-            <p className="text-slate-300 text-xs mt-1">
+            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
               {auditProgress?.phase === 'college'
                 ? 'College-wide requirements'
                 : 'Majors & minors'}
@@ -448,28 +444,28 @@ export default function Profile() {
                   <span className={c.hasError ? 'text-amber-400' : 'text-emerald-400'} aria-hidden>
                     {c.hasError ? '⚠' : '✓'}
                   </span>
-                  <span className="text-slate-200 flex-1 min-w-0 truncate">{shortLabel(c.name)}</span>
-                  <span className="text-slate-500 font-mono tabular-nums">{c.overallPercent}%</span>
+                  <span className="flex-1 min-w-0 truncate" style={{ color: 'var(--text-muted)' }}>{shortLabel(c.name)}</span>
+                  <span className="font-mono tabular-nums" style={{ color: 'var(--text-subtle)' }}>{c.overallPercent}%</span>
                 </li>
               ))}
               {waiting.map(n => (
-                <li key={n} className="flex items-center gap-2 text-xs text-slate-300">
-                  <span className="h-3.5 w-3.5 shrink-0 border-2 border-slate-600 border-t-emerald-500 rounded-full animate-spin" />
+                <li key={n} className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+                  <span className="h-3.5 w-3.5 shrink-0 spinner-green" />
                   <span className="truncate">{shortLabel(n)}</span>
-                  <span className="text-slate-600 ml-auto">In progress</span>
+                  <span className="ml-auto" style={{ color: 'var(--text-subtle)' }}>In progress</span>
                 </li>
               ))}
               {auditProgress.phase === 'college' && auditProgress.collegePending && (
-                <li className="flex items-center gap-2 text-xs text-slate-300">
-                  <span className="h-3.5 w-3.5 shrink-0 border-2 border-slate-600 border-t-emerald-500 rounded-full animate-spin" />
+                <li className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+                  <span className="h-3.5 w-3.5 shrink-0 spinner-green" />
                   <span>College graduation requirements</span>
                 </li>
               )}
             </ul>
           )}
           {!auditProgress && (
-            <div className="flex items-center gap-2 text-slate-400 text-sm">
-              <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+            <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>
+              <div className="w-8 h-8 spinner-green" />
               <span>Running degree audit…</span>
             </div>
           )}
@@ -487,7 +483,7 @@ export default function Profile() {
 
     if (audits.length === 0 && !collegeAudit) {
       return (
-        <div className="text-slate-300 text-sm text-center py-12">
+        <div className="text-sm text-center py-12" style={{ color: 'var(--text-muted)' }}>
           No audit results available. Make sure your transcript was parsed correctly.
         </div>
       )
@@ -495,27 +491,27 @@ export default function Profile() {
 
     function renderAuditCard(audit: AuditResult, label?: string) {
       const isCollege = audit.is_college
-      const borderColor = isCollege ? 'border-red-500/30' : 'border-slate-700'
-      const labelColor = isCollege ? 'text-red-300' : 'text-emerald-300'
-      const labelBg = isCollege ? 'bg-red-500/10' : 'bg-emerald-500/10'
+      const cardBorderColor = isCollege ? 'rgba(165, 20, 23, 0.35)' : 'var(--glass-border)'
+      const labelColor = isCollege ? 'var(--accent-red)' : 'var(--accent)'
+      const labelBg = isCollege ? 'rgba(165, 20, 23, 0.12)' : 'rgba(33, 87, 50, 0.22)'
 
       return (
-        <div key={label || audit.program} className={`glass surface-card rounded-xl p-6 border ${borderColor} interactive-lift`}>
+        <div key={label || audit.program} className="glass surface-card rounded-xl p-6 interactive-lift glass-glow" style={{ borderColor: cardBorderColor }}>
           {/* Header */}
           <div className="flex items-start justify-between gap-3 mb-4">
             <div>
               {label && (
-                <span className={`text-xs px-2 py-0.5 rounded-full ${labelBg} ${labelColor} font-medium mb-1 inline-block`}>
+                <span className="text-xs px-2 py-0.5 rounded-full font-medium mb-1 inline-block" style={{ background: labelBg, color: labelColor }}>
                   {label}
                 </span>
               )}
-              <h3 className="text-white font-semibold">{audit.program}</h3>
+              <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{audit.program}</h3>
               {audit.school && (
-                <p className="text-slate-300 text-xs">{audit.school}</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{audit.school}</p>
               )}
             </div>
             <div className="flex flex-col items-end gap-1 shrink-0">
-              <span className="text-xs text-slate-300 uppercase tracking-wide">Overall</span>
+              <span className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Overall</span>
               <span className={`text-2xl font-bold font-mono ${
                 audit.overall_percent >= 80 ? 'text-emerald-400'
                 : audit.overall_percent >= 40 ? 'text-amber-400'
@@ -532,7 +528,7 @@ export default function Profile() {
             </div>
           ) : (
             <>
-              <div className="glass rounded-lg px-4 py-3 text-slate-200 text-sm border border-slate-700">
+              <div className="glass rounded-lg px-4 py-3 text-sm" style={{ color: 'var(--text-muted)' }}>
                 {(audit.notes && audit.notes.length > 0) ? (
                   <AuditMarkdown text={audit.notes.slice(0, 8).join('\n\n')} />
                 ) : (
@@ -568,8 +564,8 @@ export default function Profile() {
         {/* Page header */}
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-white mb-1">gradYOU8</h1>
-            <p className="text-slate-300 text-sm leading-relaxed">
+            <h1 className="text-3xl font-semibold tracking-tight mb-1" style={{ color: 'var(--text-primary)' }}>gradYOU8</h1>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
               {profileActive
                 ? 'Review your student profile and degree progress.'
                 : 'Upload your transcript to build your profile, then start your audit.'}
@@ -579,7 +575,8 @@ export default function Profile() {
             <button
               type="button"
               onClick={handleUploadAnother}
-              className="text-xs px-3.5 py-1.5 rounded-full glass-chip text-slate-200 hover:text-white transition-colors shrink-0"
+              className="text-xs px-3.5 py-1.5 rounded-full glass-chip transition-colors shrink-0"
+              style={{ color: 'var(--text-muted)' }}
             >
               Upload another transcript
             </button>
@@ -594,10 +591,10 @@ export default function Profile() {
             {profile && (
               <div className="glass surface-card rounded-xl px-4 py-3 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-white text-sm font-medium">
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                     Profile ready for {profile.student?.name || 'student'}.
                   </p>
-                  <p className="text-slate-300 text-xs">
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                     Start the audit to load requirements and progress.
                   </p>
                 </div>
@@ -628,7 +625,7 @@ export default function Profile() {
         )}
 
         {!profile && (
-          <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+          <div className="flex flex-col items-center justify-center py-16" style={{ color: 'var(--text-muted)' }}>
             <div className="mb-4"><EmptyStateIcon /></div>
             <p className="text-sm">Upload your transcript above to get started.</p>
           </div>
@@ -643,7 +640,8 @@ export default function Profile() {
               <button
                 type="button"
                 onClick={() => setSidebarVisible(true)}
-                className="text-xs px-3.5 py-1.5 rounded-full glass-chip text-slate-200 hover:text-white transition-colors"
+                className="text-xs px-3.5 py-1.5 rounded-full glass-chip transition-colors"
+                style={{ color: 'var(--text-muted)' }}
               >
                 Show chat
               </button>
@@ -658,14 +656,15 @@ export default function Profile() {
               title="Drag to resize"
             />
             <div
-              className="glass-strong surface-elevated rounded-2xl overflow-hidden flex flex-col h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)]"
+              className="glass-strong surface-elevated glass-prism rounded-2xl overflow-hidden flex flex-col h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)]"
               style={{ width: `${sidebarWidth}px` }}
             >
               <div className="flex justify-end px-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setSidebarVisible(false)}
-                  className="text-xs px-2.5 py-1 rounded-full glass-chip text-slate-200 hover:text-white transition-colors"
+                  className="text-xs px-2.5 py-1 rounded-full glass-chip transition-colors"
+                  style={{ color: 'var(--text-muted)' }}
                 >
                   Hide chat
                 </button>

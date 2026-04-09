@@ -64,6 +64,13 @@ def _build_alias_map() -> dict[str, str]:
         # Engineering
         ("engineering major", "Engineering Major Requirements"),
         ("biomedical engineering", "Biomedical Engineering"),
+        # Earth, Environmental, and Planetary Sciences
+        ("earth science major", "Earth, Environmental, and Planetary Sciences Major"),
+        ("earth science", "Earth, Environmental, and Planetary Sciences Major"),
+        ("earth environmental and planetary sciences", "Earth, Environmental, and Planetary Sciences Major"),
+        ("eeps major", "Earth, Environmental, and Planetary Sciences Major"),
+        ("eeps", "Earth, Environmental, and Planetary Sciences Major"),
+        ("earth science minor", "Earth Science Minor"),
         # Environmental
         ("environmental science", "Environmental Science Major"),
         ("environmental studies", "Environmental Studies Minor"),

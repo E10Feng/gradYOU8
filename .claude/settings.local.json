@@ -20,7 +20,8 @@
       "WebFetch(domain:medium.com)",
       "WebFetch(domain:www.analyticsvidhya.com)",
       "WebFetch(domain:www.blog.brightcoding.dev)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(grep -r .css C:Usersethan.openclawworkspacegradYOU8frontendsrc --include=*.tsx --include=*.ts --include=*.jsx --include=*.js)"
     ]
   }
 }

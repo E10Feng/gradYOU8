@@ -102,7 +102,7 @@ Return ONLY valid JSON in this exact format:
 
 def _parse_with_llm_debug(raw_text: str) -> tuple[dict, dict]:
     """Use MiniMax to parse raw bulletin text into structured requirements, with debug info."""
-    prompt = EXTRACT_PROMPT.format(raw_text=raw_text[:8000])
+    prompt = EXTRACT_PROMPT.format(raw_text=raw_text[:20000])
     dbg = {
         "parse_prompt_preview": prompt[:800],
         "parse_input_chars": len(raw_text or ""),
@@ -453,7 +453,7 @@ def get_college_requirements(school_name: str) -> dict:
 
 def _parse_college_with_llm(raw_text: str, school_hint: str = '') -> dict:
     """Use MiniMax to parse raw bulletin text into college requirement groups."""
-    prompt = COLLEGE_PARSE_PROMPT.format(raw_text=raw_text[:8000])
+    prompt = COLLEGE_PARSE_PROMPT.format(raw_text=raw_text[:20000])
     try:
         response = ChatGPT_API(MINIMAX_MODEL, prompt)
         response = response.replace('<thinking>', '').replace('</thinking>', '').strip()
