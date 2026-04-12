@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/api'
 import { useState, useEffect, type MouseEvent as ReactMouseEvent } from 'react'
 import TranscriptUpload, { StudentProfile } from '../components/TranscriptUpload'
 import TimelineView from '../components/TimelineView'
@@ -128,7 +129,7 @@ export default function Profile() {
     }
 
     try {
-      const streamRes = await fetch('/api/audit-full/stream', {
+      const streamRes = await apiFetch('/api/audit-full/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
         body: JSON.stringify({
@@ -249,7 +250,7 @@ export default function Profile() {
     } catch {
       setAuditProgress(prev => prev ? { ...prev, message: 'Retrying without live progress…' } : prev)
       try {
-        const res = await fetch('/api/audit-full', {
+        const res = await apiFetch('/api/audit-full', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

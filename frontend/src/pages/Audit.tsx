@@ -8,8 +8,8 @@ export default function Audit() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-3xl font-bold text-white mb-2">Degree Audit</h1>
-        <p className="text-slate-400 text-sm">
+        <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Degree Audit</h1>
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
           Upload your transcript to see how your courses count toward your degree requirements.
         </p>
       </div>
@@ -23,7 +23,7 @@ export default function Audit() {
       )}
 
       {!profile && (
-        <div className="flex flex-col items-center justify-center py-16 text-slate-500">
+        <div className="flex flex-col items-center justify-center py-16" style={{ color: 'var(--text-muted)' }}>
           <div className="text-5xl mb-4">🎓</div>
           <p className="text-sm">Upload your transcript above to get started.</p>
         </div>

@@ -1,15 +1,15 @@
 interface Props {
   label: string
   percent: number
-  color?: string  // e.g. "bg-emerald-500", "bg-red-500" — mapped to fill class
+  color?: string  // e.g. "progress-fill", "progress-fill-warning", "progress-fill-danger"
 }
 
-export default function ProgressBar({ label, percent, color = "bg-emerald-500" }: Props) {
+export default function ProgressBar({ label, percent, color = "progress-fill" }: Props) {
   const clamped = Math.min(100, Math.max(0, percent))
 
   const fillClass =
-    color === 'bg-amber-500' ? 'progress-fill-warning' :
-    color === 'bg-red-500'   ? 'progress-fill-danger' :
+    color === 'progress-fill-warning' ? 'progress-fill-warning' :
+    color === 'progress-fill-danger'  ? 'progress-fill-danger' :
     'progress-fill'
 
   return (

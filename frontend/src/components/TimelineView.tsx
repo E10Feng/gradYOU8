@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type WheelEvent } from 'react'
+import { useState } from 'react'
 import { StudentProfile, Semester, Course } from './TranscriptUpload'
 
 interface TimelineViewProps {
@@ -7,14 +7,14 @@ interface TimelineViewProps {
 }
 
 function SeasonIcon({ season }: { season: string }) {
-  const accent =
-    season === 'Fall' ? 'text-red-300' :
-    season === 'Spring' ? 'text-emerald-200' :
-    season === 'Summer' ? 'text-emerald-300' :
-    season === 'Winter' ? 'text-slate-200' :
-    'text-emerald-300'
+  const color =
+    season === 'Fall' ? 'var(--accent-red)' :
+    season === 'Spring' ? 'var(--accent-emerald)' :
+    season === 'Summer' ? 'var(--accent-emerald)' :
+    season === 'Winter' ? 'var(--text-muted)' :
+    'var(--accent-emerald)'
   return (
-    <svg viewBox="0 0 24 24" className={`h-5 w-5 ${accent}`} fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true" style={{ color }}>
       <rect x="4" y="5" width="16" height="15" rx="3" />
       <path d="M8 3.5v3M16 3.5v3M4 9.5h16" />
     </svg>
@@ -22,90 +22,27 @@ function SeasonIcon({ season }: { season: string }) {
 }
 
 function gradeColor(grade: string): string {
-  if (!grade || grade === 'CR' || grade === 'P') return 'text-slate-400'
+  if (!grade || grade === 'CR' || grade === 'P') return 'var(--text-muted)'
   const g = grade.replace('+', '').replace('-', '').replace('CR', '').replace('P', '').trim()
   switch (g) {
-    case 'A': return 'text-emerald-400'
-    case 'B': return 'text-emerald-300'
-    case 'C': return 'text-amber-400'
-    case 'D': return 'text-orange-400'
-    case 'F': return 'text-red-400'
-    default: return 'text-slate-400'
+    case 'A': return 'var(--accent-emerald)'
+    case 'B': return 'var(--accent-emerald)'
+    case 'C': return 'var(--accent-amber)'
+    case 'D': return 'var(--accent)'
+    case 'F': return 'var(--accent-red)'
+    default: return 'var(--text-muted)'
   }
 }
 
 function gpaColor(gpa: number): string {
-  if (gpa >= 3.8) return 'text-emerald-400'
-  if (gpa >= 3.5) return 'text-green-400'
-  if (gpa >= 3.0) return 'text-emerald-300'
-  if (gpa >= 2.5) return 'text-amber-400'
-  return 'text-red-400'
+  if (gpa >= 3.8) return 'var(--accent-emerald)'
+  if (gpa >= 3.5) return 'var(--accent-emerald)'
+  if (gpa >= 3.0) return 'var(--accent-emerald)'
+  if (gpa >= 2.5) return 'var(--accent-amber)'
+  return 'var(--accent-red)'
 }
 
 export default function TimelineView({ profile, expandAll = false }: TimelineViewProps) {
-  const smoothScrollState = useRef(new Map<HTMLDivElement, { target: number; rafId: number | null }>())
-
-  useEffect(() => {
-    const states = smoothScrollState.current
-    return () => {
-      states.forEach(state => {
-        if (state.rafId !== null) {
-          window.cancelAnimationFrame(state.rafId)
-        }
-      })
-    }
-  }, [])
-
-  function animateToTarget(container: HTMLDivElement) {
-    const states = smoothScrollState.current
-    const state = states.get(container)
-    if (!state) return
-
-    const step = () => {
-      const delta = state.target - container.scrollLeft
-      if (Math.abs(delta) < 0.5) {
-        container.scrollLeft = state.target
-        state.rafId = null
-        return
-      }
-
-      // Eased movement for smoother horizontal scrolling.
-      container.scrollLeft += delta * 0.2
-      state.rafId = window.requestAnimationFrame(step)
-    }
-
-    state.rafId = window.requestAnimationFrame(step)
-  }
-
-  function handleTimelineWheel(e: WheelEvent<HTMLDivElement>) {
-    // Keep wheel interactions scoped to the timeline while hovered.
-    e.preventDefault()
-    e.stopPropagation()
-
-    // Map vertical wheel motion to horizontal timeline movement.
-    const horizontalDelta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY
-    const container = e.currentTarget
-    const states = smoothScrollState.current
-    const maxScroll = container.scrollWidth - container.clientWidth
-
-    const existing = states.get(container)
-    const nextTarget = Math.max(
-      0,
-      Math.min(maxScroll, (existing?.target ?? container.scrollLeft) + horizontalDelta),
-    )
-
-    if (!existing) {
-      states.set(container, { target: nextTarget, rafId: null })
-      animateToTarget(container)
-      return
-    }
-
-    existing.target = nextTarget
-    if (existing.rafId === null) {
-      animateToTarget(container)
-    }
-  }
-
   // Use semesters from profile if available, otherwise group by semester from flat courses list
   const semesters: Semester[] = profile.semesters || []
 
@@ -140,7 +77,7 @@ export default function TimelineView({ profile, expandAll = false }: TimelineVie
     })
     if (inferred.length > 0) {
       return (
-        <div className="overflow-x-auto no-scrollbar overscroll-contain pb-4" onWheelCapture={handleTimelineWheel}>
+        <div className="overflow-x-auto no-scrollbar pb-4">
           <div className="flex gap-6 min-w-max">
             {inferred.map((sem, i) => (
               <SemesterColumn
@@ -162,7 +99,7 @@ export default function TimelineView({ profile, expandAll = false }: TimelineVie
   }
 
   return (
-    <div className="overflow-x-auto no-scrollbar overscroll-contain pb-4" onWheelCapture={handleTimelineWheel}>
+    <div className="overflow-x-auto no-scrollbar pb-4">
       <div className="relative min-w-max">
         <div className="flex gap-6 items-start">
           {sortedSemesters.map((sem, i) => (
@@ -221,7 +158,7 @@ function SemesterColumn({
 
       {/* Semester GPA */}
       <div className="mt-1 mb-3">
-        <span className={`text-sm font-bold font-mono ${gpa > 0 ? gpaColor(gpa) : ''}`} style={gpa <= 0 ? { color: 'var(--text-muted)' } : undefined}>
+        <span className="text-sm font-bold font-mono" style={gpa > 0 ? { color: gpaColor(gpa) } : { color: 'var(--text-muted)' }}>
           {gpa > 0 ? gpa.toFixed(2) : '—'}
         </span>
       </div>
@@ -252,19 +189,30 @@ function SemesterColumn({
 
 function CourseCard({ course }: { course: Course }) {
   const { id, title, credits, grade } = course
+  const [expanded, setExpanded] = useState(false)
 
   return (
-    <div className="glass rounded-2xl px-3 py-2 w-full interactive-lift" style={{ borderColor: 'var(--glass-border)' }}>
+    <button
+      type="button"
+      onClick={() => setExpanded(prev => !prev)}
+      className="glass rounded-2xl px-3 py-2 w-full interactive-lift text-left"
+      style={{ borderColor: 'var(--glass-border)' }}
+    >
       <div className="flex items-start justify-between gap-1">
         <div className="flex-1 min-w-0">
           <p className="font-mono text-xs font-medium truncate" style={{ color: 'var(--accent)' }}>{id}</p>
-          <p className="text-xs leading-tight mt-0.5 line-clamp-2" style={{ color: 'var(--text-primary)' }}>{title}</p>
+          <p
+            className={`text-xs leading-tight mt-0.5 ${expanded ? 'break-words' : 'line-clamp-2'}`}
+            style={{ color: 'var(--text-primary)' }}
+          >
+            {title}
+          </p>
         </div>
         <div className="flex flex-col items-end gap-0.5 shrink-0 ml-1">
-          <span className={`text-xs font-bold ${gradeColor(grade)}`}>{grade}</span>
+          <span className="text-xs font-bold" style={{ color: gradeColor(grade) }}>{grade}</span>
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{credits}cr</span>
         </div>
       </div>
-    </div>
+    </button>
   )
 }

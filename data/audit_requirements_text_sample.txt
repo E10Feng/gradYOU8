@@ -1,0 +1,101 @@
+The complete degree requirements for the Biology Major with Specialization in Genomics and Computational Biology, B.A. are as follows:
+
+**Total Units Required:** 58
+
+**Grade Requirement:** All courses counted toward the major must be taken for a letter grade if offered, and a grade of C- or better must be earned in all of these courses.
+
+**Required Courses:**
+
+*   BIOL 2960: Principles of Biology I (4 units)
+*   BIOL 2970: Principles of Biology II (4 units)
+*   CHEM 1601: Principles of General Chemistry I OR CHEM 1701: General Chemistry I (3 units)
+*   CHEM 1602: Principles of General Chemistry II OR CHEM 1702: General Chemistry II (3 units)
+*   CHEM 1751: General Chemistry Laboratory I (2 units)
+*   CHEM 1752: General Chemistry Laboratory II (2 units)
+*   CHEM 2561: Organic Chemistry I With Lab (4 units)
+*   CHEM 2562: Organic Chemistry II With Lab (4 units)
+*   PHYSICS 1740: Physics I OR PHYSICS 1760: Focused Physics I (3 units)
+*   PHYSICS 1741: Physics I Lab (1 unit)
+*   PHYSICS 1742: Physics II OR PHYSICS 1762: Focused Physics II (3 units)
+*   PHYSICS 1743: Physics II Lab (1 unit)
+*   MATH 1510: Calculus II (3 units)
+*   MATH 2130: Calculus III OR MATH 3020: Elementary to Intermediate Statistics and Data Analysis OR SDS 2020: Elementary Probability and Statistics (3 units)
+
+**Total Units for Required Courses:** 40 units
+
+**Advanced Biology Courses:** At least 18 units in advanced biology courses (numbered 3000 or above) are required. These units may not include BIOL 3030, BIOL 3430, BIOL 3990, BIOL 3991, BIOL 3900, BIOL 4990, or BIOL 4991; courses in the School of Continuing &amp; Professional Studies; or more than 3 units of history-of-science courses. The following courses originating in other departments count towards these 18 units: PHYSICS 3354, PHYSICS 3324, ANTHRO 4581, CHEM 4810, CHEM 4820, and CHEM 4833. Up to 6 units of independent research (BIOL 4950, BIOL 4951, BIOL 4952, BIOL 4953, or BIOL 4954) may be counted, and up to 3 units of BIOL 49XX seminar courses may be counted.
+
+**Area Requirements (at least one course from each area):**
+
+*   **Area A: Cellular and Molecular Biology**
+    *   BIOL 3240: Human Genetics (3 units)
+    *   BIOL 3340: Cell Biology (3 units)
+    *   BIOL 3371: Eukaryotic Genomes (4 units)
+    *   BIOL 3481: Parasitology (3 units)
+    *   BIOL 3490: Microbiology (4 units)
+    *   BIOL 4240: Immunology (3 units)
+    *   BIOL 4242: Virology (3 units)
+    *   BIOL 4345: Epigenetics (3 units)
+    *   BIOL 4492: Infections Diseases: History, Pathology, and Prevention (3 units)
+    *   BIOL 4510: General Biochemistry (4 units)
+    *   CHEM 4810: General Biochemistry I (3 units)
+    *   CHEM 4820: General Biochemistry II (3 units)
+
+*   **Area B: Organismal Biology**
+    *   ANTHRO 4581: Principles of Human Anatomy and Development (3 units)
+    *   BIOL 3057: Physiological Control Systems (3 units)
+    *   BIOL 3151: Endocrinology (3 units)
+    *   BIOL 3280: Principles in Human Physiology (4 units)
+    *   BIOL 3411: Principles of the Nervous System (3 units)
+    *   BIOL 3421: Introduction to Neuroethology (3 units)
+    *   BIOL 3422: Genes, Brains, and Behavior (3 units)
+    *   BIOL 3424: Great Discoveries in Neuroscience (3 units)
+    *   BIOL 4026: How Plants Work: Physiology, Growth, and Metabolism (3 units)
+    *   BIOL 4030: Biological Clocks (3 units)
+    *   BIOL 4071: Developmental Biology (3 units)
+    *   BIOL 4072: Regenerative and Stem Cell Biology (3 units)
+    *   BIOL 4381: Cell-Based Tissue Engineering and Regenerative Medicine (3 units)
+
+*   **Area C: Evolution, Ecology and Population Biology**
+    *   BIOL 3220: Woody Plants of Missouri (3 units)
+    *   BIOL 3221: Research and Public Education in the Arboretum (3 units)
+    *   BIOL 3470: Darwin and Evolutionary Controversies* (3 units)
+    *   BIOL 3494: Microbes and the Environment (4 units)
+    *   BIOL 3501: Evolution (4 units)
+    *   BIOL 3700: Animal Behavior (3 units)
+    *   BIOL 3810: Introduction to Ecology (3 units)
+    *   BIOL 4181: Population Genetics (and Microevolution) (3 units)
+    *   BIOL 4182: Macroevolution (3 units)
+    *   BIOL 4183: Molecular Evolution (3 units)
+    *   BIOL 4195: Disease Ecology (4 units)
+    *   BIOL 4197: Community Ecology (3 units)
+    *   BIOL 4720: Behavioral Ecology (4 units)
+
+**Advanced Laboratory Course:** Majors must take at least one advanced laboratory course from the following list:
+
+*   BIOL 3110: Vertebrate Structure Laboratory (4 units)
+*   BIOL 3423: Behavioral Genetics Laboratory (3 units)
+*   BIOL 3491: Microbiology Laboratory (3 units)
+*   BIOL 3492: Laboratory Experiments with Eukaryotic Microbes* (3 units)
+*   BIOL 3493: Bacterial Bioprospecting and Biotechnology (3 units)
+*   BIOL 4040: Laboratory of Neurophysiology* (4 units)
+*   BIOL 4193: Experimental Ecology Laboratory* (4 units)
+*   BIOL 4220: Practical Bioinformatics (4 units)
+*   BIOL 4342: Research Explorations in Genomics (4 units)
+*   BIOL 4343: Research Explorations in Genomics* (4 units)
+*   BIOL 4346: Next-Gen Genetics: Merging Genetics With Genomic Insights (3 units)
+*   BIOL 4522: Laboratory in Protein Analysis, Proteomics, and Protein Structure (3 units)
+*   BIOL 4523: Molecular Methods in Enzyme Analysis (4 units)
+*   BIOL 4525: Structural Bioinformatics of Proteins* (4 units)
+*   CHEM 4851: Biological Chemistry Laboratory
+*   PHYSiCS 3324: Biophysics Laboratory (3 units)
+
+**Specialization Requirements (Genomics and Computational Biology):**
+
+*   **Total units required (including biology major requirements):** 64
+*   **Additional requirements:**
+    *   An advanced genomics/computational biology elective: BIOL 3240, BIOL 4183, BIOL 4344, BIOL 5480, or BIOL 5488.
+    *   Statistics: SDS 2200 or SDS 3200.
+    *   Two outside electives: CSE 1301 and CSE 2407.
+    *   CSE 2400 is strongly recommended.
+    *   The advanced laboratory course used to fulfill the major requirement must be one of the following: BIOL 3492, BIOL 3493, BIOL 4220, BIOL 4342, BIOL 4343, BIOL 4346, BIOL 4522, or BIOL 4525.

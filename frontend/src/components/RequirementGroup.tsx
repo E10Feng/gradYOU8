@@ -1,11 +1,20 @@
 import ProgressBar from './ProgressBar'
 
+interface CourseDetail {
+  code: string
+  title: string
+  note?: string
+  credits?: number
+}
+
 interface RequirementGroup {
   name: string
   status: 'SATISFIED' | 'PARTIAL' | 'MISSING'
   percent: number
   satisfied: string[]
+  satisfied_details?: CourseDetail[]
   remaining: string[]
+  remaining_details?: CourseDetail[]
   credit_progress: string
 }
 
@@ -14,19 +23,40 @@ interface Props {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  SATISFIED: 'bg-emerald-500',
-  PARTIAL: 'bg-amber-500',
-  MISSING: 'bg-red-500',
+  SATISFIED: 'progress-fill',
+  PARTIAL: 'progress-fill-warning',
+  MISSING: 'progress-fill-danger',
 }
 
 const STATUS_LABEL_COLORS: Record<string, string> = {
-  SATISFIED: 'var(--accent)',
+  SATISFIED: 'var(--accent-emerald)',
   PARTIAL: 'var(--accent-amber)',
   MISSING: 'var(--accent-red)',
 }
 
+function CoursePill({ code, title, note, variant, credits }: { code: string; title: string; note?: string; variant: 'satisfied' | 'remaining'; credits?: number }) {
+  const label = note || code
+  const hasTitle = title && title !== code
+  const style = variant === 'satisfied'
+    ? { background: 'var(--satisfied-bg)', border: '1px solid var(--satisfied-border)', color: 'var(--satisfied-color)' }
+    : { color: 'var(--text-muted)' }
+
+  return (
+    <span
+      className={`${variant === 'remaining' ? 'glass-chip ' : ''}px-2 py-0.5 rounded-full text-xs font-mono`}
+      style={style}
+      title={hasTitle ? `${label} — ${title} (${credits ?? 3} cr)` : `${label} (${credits ?? 3} cr)`}
+    >
+      {hasTitle ? `${label} — ${title}` : label}
+      {credits != null && (
+        <span className="ml-1 opacity-60">({credits} cr)</span>
+      )}
+    </span>
+  )
+}
+
 export default function RequirementGroup({ group }: Props) {
-  const { name, status, percent, satisfied, remaining, credit_progress } = group
+  const { name, status, percent, satisfied, satisfied_details, remaining, remaining_details, credit_progress } = group
   const barColor = STATUS_COLORS[status] || 'bg-slate-500'
   const labelColor = STATUS_LABEL_COLORS[status] || 'var(--text-subtle)'
 
@@ -53,18 +83,10 @@ export default function RequirementGroup({ group }: Props) {
             Satisfied
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {satisfied.map((s, i) => (
-              <span
-                key={i}
-                className="px-2 py-0.5 rounded-full text-xs font-mono"
-                style={{
-                  background: 'rgba(33, 87, 50, 0.22)',
-                  border: '1px solid rgba(76, 217, 130, 0.28)',
-                  color: 'var(--accent)',
-                }}
-              >
-                {s}
-              </span>
+            {satisfied_details ? satisfied_details.map((d, i) => (
+              <CoursePill key={i} code={d.code} title={d.title} note={d.note} credits={d.credits} variant="satisfied" />
+            )) : satisfied.map((s, i) => (
+              <CoursePill key={i} code={s} title="" variant="satisfied" />
             ))}
           </div>
         </div>
@@ -77,14 +99,10 @@ export default function RequirementGroup({ group }: Props) {
             Remaining
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {remaining.map((r, i) => (
-              <span
-                key={i}
-                className="glass-chip px-2 py-0.5 rounded-full text-xs font-mono"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                {r}
-              </span>
+            {remaining_details ? remaining_details.map((d, i) => (
+              <CoursePill key={i} code={d.code} title={d.title} credits={d.credits} variant="remaining" />
+            )) : remaining.map((r, i) => (
+              <CoursePill key={i} code={r} title="" variant="remaining" />
             ))}
           </div>
         </div>

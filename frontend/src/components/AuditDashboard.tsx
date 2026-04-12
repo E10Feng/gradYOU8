@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/api'
 import { useState, useEffect } from 'react'
 import ProgressBar from './ProgressBar'
 import RequirementGroup from './RequirementGroup'
@@ -42,7 +43,7 @@ export default function AuditDashboard({ profile }: Props) {
       setCollegeAudit(null)
 
       try {
-        const streamRes = await fetch('/api/audit-full/stream', {
+        const streamRes = await apiFetch('/api/audit-full/stream', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
           body: JSON.stringify({
@@ -123,7 +124,7 @@ export default function AuditDashboard({ profile }: Props) {
         }
       } catch (err) {
         try {
-          const res = await fetch('/api/audit-full', {
+          const res = await apiFetch('/api/audit-full', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -161,7 +162,7 @@ export default function AuditDashboard({ profile }: Props) {
 
   if (error) {
     return (
-      <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-6 py-4 text-red-400 text-sm">
+      <div className="border rounded-xl px-6 py-4 text-sm" style={{ color: 'var(--accent-red)', borderColor: 'var(--accent-red)', background: 'var(--college-bg)' }}>
         {error}
       </div>
     )
@@ -175,7 +176,7 @@ export default function AuditDashboard({ profile }: Props) {
     )
   }
 
-  const gpaColor = profile.gpa >= 3.5 ? 'text-emerald-400' : profile.gpa >= 3.0 ? 'text-amber-400' : 'text-red-400'
+  const gpaColor = profile.gpa >= 3.5 ? 'var(--accent-emerald)' : profile.gpa >= 3.0 ? 'var(--accent-amber)' : 'var(--accent-red)'
 
   return (
     <div className="flex flex-col gap-8">
@@ -188,7 +189,7 @@ export default function AuditDashboard({ profile }: Props) {
         </div>
         <div>
           <p className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--text-subtle)' }}>GPA</p>
-          <p className={`text-2xl font-bold font-mono ${gpaColor}`}>
+          <p className="text-2xl font-bold font-mono" style={{ color: gpaColor }}>
             {profile.gpa ? profile.gpa.toFixed(2) : 'N/A'}
           </p>
         </div>
@@ -225,10 +226,10 @@ export default function AuditDashboard({ profile }: Props) {
 function ProgramAuditCard({ audit, isCollege = false }: { audit: AuditResult; isCollege?: boolean }) {
   const pctColor =
     audit.overall_percent >= 80
-      ? 'text-emerald-400'
+      ? 'var(--accent-emerald)'
       : audit.overall_percent >= 40
-      ? 'text-amber-400'
-      : 'text-red-400'
+      ? 'var(--accent-amber)'
+      : 'var(--accent-red)'
 
   const barColor =
     audit.overall_percent >= 80
@@ -242,19 +243,19 @@ function ProgramAuditCard({ audit, isCollege = false }: { audit: AuditResult; is
       {/* Program header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className={`font-bold text-white ${isCollege ? 'text-base' : 'text-lg'}`}>
+          <h2 className={`font-bold ${isCollege ? 'text-base' : 'text-lg'}`} style={{ color: 'var(--text-primary)' }}>
             {audit.program}
           </h2>
           {audit.school && <p className="text-xs" style={{ color: 'var(--text-subtle)' }}>{audit.school}</p>}
         </div>
         <div className="flex flex-col items-end">
           <span className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-subtle)' }}>Overall</span>
-          <span className={`text-2xl font-bold font-mono ${pctColor}`}>{audit.overall_percent}%</span>
+          <span className="text-2xl font-bold font-mono" style={{ color: pctColor }}>{audit.overall_percent}%</span>
         </div>
       </div>
 
       {audit.error ? (
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-3 text-amber-400 text-sm">
+        <div className="border rounded-lg px-4 py-3 text-sm" style={{ color: 'var(--accent-amber)', borderColor: 'var(--accent-amber)', background: 'var(--college-bg)' }}>
           {audit.error}
         </div>
       ) : (

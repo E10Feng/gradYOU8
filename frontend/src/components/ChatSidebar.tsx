@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/api'
 import { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -19,7 +20,7 @@ const EXAMPLE_QUESTIONS = [
 
 function ChatIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-7 w-7 text-emerald-300/90" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true" style={{ color: 'var(--accent)' }}>
       <path d="M4.5 6.75A2.25 2.25 0 0 1 6.75 4.5h10.5a2.25 2.25 0 0 1 2.25 2.25v7.5a2.25 2.25 0 0 1-2.25 2.25H10l-4.5 3v-3H6.75A2.25 2.25 0 0 1 4.5 14.25v-7.5Z" />
     </svg>
   )
@@ -38,19 +39,19 @@ function MessageContent({ content }: { content: string }) {
         table: ({ children }) => (
           <table className="min-w-full text-xs border-collapse overflow-x-auto block">{children}</table>
         ),
-        thead: ({ children }) => <thead className="bg-emerald-900/25">{children}</thead>,
-        tbody: ({ children }) => <tbody className="divide-y divide-emerald-950/60">{children}</tbody>,
-        tr: ({ children }) => <tr className="hover:bg-emerald-900/20">{children}</tr>,
-        th: ({ children }) => <th className="px-2 py-1 text-left font-medium text-emerald-300">{children}</th>,
+        thead: ({ children }) => <thead style={{ background: 'var(--table-header-bg)' }}>{children}</thead>,
+        tbody: ({ children }) => <tbody style={{ borderColor: 'var(--table-border)' }} className="divide-y">{children}</tbody>,
+        tr: ({ children }) => <tr className="hover:opacity-80">{children}</tr>,
+        th: ({ children }) => <th className="px-2 py-1 text-left font-medium" style={{ color: 'var(--accent)' }}>{children}</th>,
         td: ({ children }) => <td className="px-2 py-1" style={{ color: 'var(--text-muted)' }}>{children}</td>,
         ul: ({ children }) => <ul className="list-disc list-inside space-y-1 my-2">{children}</ul>,
         ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 my-2">{children}</ol>,
         li: ({ children }) => <li style={{ color: 'var(--text-muted)' }}>{children}</li>,
         strong: ({ children }) => <strong className="font-semibold" style={{ color: 'var(--text-primary)' }}>{children}</strong>,
         p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-        h1: ({ children }) => <h1 className="text-lg font-bold text-white mt-3 mb-1">{children}</h1>,
-        h2: ({ children }) => <h2 className="text-base font-semibold text-white mt-3 mb-1">{children}</h2>,
-        h3: ({ children }) => <h3 className="text-sm font-semibold text-emerald-300 mt-2 mb-1">{children}</h3>,
+        h1: ({ children }) => <h1 className="text-lg font-bold mt-3 mb-1" style={{ color: 'var(--text-primary)' }}>{children}</h1>,
+        h2: ({ children }) => <h2 className="text-base font-semibold mt-3 mb-1" style={{ color: 'var(--text-primary)' }}>{children}</h2>,
+        h3: ({ children }) => <h3 className="text-sm font-semibold mt-2 mb-1" style={{ color: 'var(--accent)' }}>{children}</h3>,
         blockquote: ({ children }) => <blockquote className="border-l-2 pl-3 italic" style={{ borderColor: 'var(--accent)', color: 'var(--text-muted)' }}>{children}</blockquote>,
       }}
     >
@@ -89,7 +90,7 @@ export default function ChatSidebar({ profile }: Props) {
       if (profile) {
         body.profile = profile
       }
-      const streamRes = await fetch('/chat/stream', {
+      const streamRes = await apiFetch('/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
         body: JSON.stringify(body),
@@ -170,7 +171,7 @@ export default function ChatSidebar({ profile }: Props) {
       try {
         const body: Record<string, unknown> = { question }
         if (profile) body.profile = profile
-        const res = await fetch('/chat', {
+        const res = await apiFetch('/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
@@ -225,7 +226,7 @@ export default function ChatSidebar({ profile }: Props) {
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto no-scrollbar px-4 space-y-3">
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-4 space-y-3">
         {messages.length === 0 && !loading && (
           <div className="flex flex-col items-center justify-center h-full py-8" style={{ color: 'var(--text-muted)' }}>
             <div className="mb-2"><ChatIcon /></div>

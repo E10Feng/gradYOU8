@@ -1,4 +1,4 @@
-﻿"""
+"""
 WashU Navigator â€” FastAPI Backend
 RAG-powered degree requirement explorer for WashU undergrads.
 Uses E10's vectorless_gemini PageIndex fork for tree-based document retrieval.
@@ -70,6 +70,24 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── Password auth middleware ───────────────────────────────────────────────────
+_APP_PASSWORD = os.getenv("APP_PASSWORD", "")
+
+@app.middleware("http")
+async def require_password(request: Request, call_next):
+    # Always allow health check and OPTIONS (CORS preflight)
+    if request.url.path in ("/", "/api/ping") or request.method == "OPTIONS":
+        return await call_next(request)
+    # Skip auth if no password is configured (dev mode)
+    if not _APP_PASSWORD:
+        return await call_next(request)
+    auth = request.headers.get("Authorization", "")
+    if auth == f"Bearer {_APP_PASSWORD}":
+        return await call_next(request)
+    return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+
+
 
 # â”€â”€ Import vectorless RAG lib â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import sys
@@ -286,6 +304,13 @@ def run_ingestion(pdf_path: Path, force: bool) -> dict:
 @app.get("/")
 async def root():
     return {"app": "WashU Navigator", "version": "0.1.0", "status": "running"}
+
+
+
+@app.get("/api/ping")
+async def ping():
+    """Public liveness probe (no auth required)."""
+    return {"ok": True}
 
 
 @app.get("/api/health")

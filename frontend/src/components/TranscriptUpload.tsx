@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/api'
 import { useState, useRef, DragEvent } from 'react'
 
 export interface Course {
@@ -40,7 +41,7 @@ export default function TranscriptUpload({ onProfileLoaded }: Props) {
     formData.append('file', file)
 
     try {
-      const res = await fetch('/api/upload-transcript', {
+      const res = await apiFetch('/api/upload-transcript', {
         method: 'POST',
         body: formData,
       })
@@ -89,7 +90,7 @@ export default function TranscriptUpload({ onProfileLoaded }: Props) {
         onDragOver={e => { e.preventDefault(); setDragging(true) }}
         onDragLeave={() => setDragging(false)}
         onDrop={handleDrop}
-        className={`upload-zone p-10 text-center cursor-pointer${dragging ? ' dragging' : ''}${loading ? ' opacity-60 cursor-wait' : ''}`}
+        className={`upload-zone p-10 text-center cursor-pointer profile-enter-2${dragging ? ' dragging' : ''}${loading ? ' opacity-60 cursor-wait' : ''}`}
       >
         <input
           ref={inputRef}
@@ -109,7 +110,7 @@ export default function TranscriptUpload({ onProfileLoaded }: Props) {
               <path d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
             </svg>
             <div>
-              <p className="font-medium" style={{ color: 'var(--text-primary)' }}>Drop your transcript PDF here</p>
+              <p className="font-medium" style={{ color: 'var(--text-primary)', fontFamily: "'Fraunces', serif", fontStyle: 'italic' }}>Drop your transcript PDF here</p>
               <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>or click to browse — PDF only</p>
             </div>
           </div>
@@ -117,7 +118,7 @@ export default function TranscriptUpload({ onProfileLoaded }: Props) {
       </div>
 
       {error && (
-        <div className="glass flex items-center gap-2 rounded-lg px-4 py-3" style={{ borderColor: 'rgba(201, 79, 79, 0.35)' }}>
+        <div className="glass flex items-center gap-2 rounded-lg px-4 py-3" style={{ borderColor: 'var(--error-border)' }}>
           <span className="text-sm" style={{ color: 'var(--accent-red)' }}>{error}</span>
         </div>
       )}

@@ -206,7 +206,7 @@ def _llm_decide(
     import re
     sys.path.insert(0, str(_BACKEND_ROOT / "libs" / "pageindex_agent"))
     try:
-        from pageindex_agent.utils import ChatGPT_API
+        from services.llm import complete
     except Exception:
         return ExploreDecision(to_fetch=[], to_expand=[], reasoning="import_error")
 
@@ -243,7 +243,7 @@ def _llm_decide(
     )
 
     try:
-        response = ChatGPT_API(model, prompt, stream=False) or ""
+        response = complete(model, prompt) or ""
         response = re.sub(r"<thinking[\s\S]*?</thinking>", "", response, flags=re.IGNORECASE)
         json_start = response.find("{")
         json_end = response.rfind("}")
@@ -526,7 +526,7 @@ def generate_answer(
 
     sys.path.insert(0, str(_BACKEND_ROOT / "libs" / "pageindex_agent"))
     try:
-        from pageindex_agent.utils import ChatGPT_API
+        from services.llm import complete
     except Exception:
         return "Error: could not load LLM."
 
@@ -540,7 +540,7 @@ def generate_answer(
     )
 
     try:
-        response = ChatGPT_API(model, prompt) or ""
+        response = complete(model, prompt) or ""
         # Strip thinking/reasoning tags from MiniMax/M2.7 responses
         response = re.sub(r"<thinking[\s\S]*?</thinking>", "", response, flags=re.IGNORECASE)
         response = re.sub(r"<think>[\s\S]*?</think>", "", response, flags=re.IGNORECASE)

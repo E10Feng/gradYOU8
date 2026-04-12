@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/api'
 import { useState, useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -37,9 +38,9 @@ function MessageContent({ content }: { content: string }) {
         table: ({ children }) => (
           <table className="min-w-full text-xs border-collapse overflow-x-auto block">{children}</table>
         ),
-        thead: ({ children }) => <thead style={{ background: 'rgba(33, 87, 50, 0.25)' }}>{children}</thead>,
-        tbody: ({ children }) => <tbody style={{ borderColor: 'rgba(33, 87, 50, 0.4)' }} className="divide-y">{children}</tbody>,
-        tr: ({ children }) => <tr className="hover:bg-[rgba(33,87,50,0.2)]">{children}</tr>,
+        thead: ({ children }) => <thead style={{ background: 'var(--table-header-bg)' }}>{children}</thead>,
+        tbody: ({ children }) => <tbody style={{ borderColor: 'var(--table-border)' }} className="divide-y">{children}</tbody>,
+        tr: ({ children }) => <tr className="hover:opacity-80">{children}</tr>,
         th: ({ children }) => <th className="px-2 py-1 text-left font-medium" style={{ color: 'var(--accent)' }}>{children}</th>,
         td: ({ children }) => <td className="px-2 py-1" style={{ color: 'var(--text-muted)' }}>{children}</td>,
         ul: ({ children }) => <ul className="list-disc list-inside space-y-1 my-2">{children}</ul>,
@@ -97,7 +98,7 @@ export default function Chat() {
         body.profile = studentProfile
       }
 
-      const streamRes = await fetch('/chat/stream', {
+      const streamRes = await apiFetch('/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
         body: JSON.stringify(body),
@@ -178,7 +179,7 @@ export default function Chat() {
       try {
         const body: Record<string, unknown> = { question }
         if (studentProfile) body.profile = studentProfile
-        const res = await fetch('/chat', {
+        const res = await apiFetch('/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
@@ -220,7 +221,7 @@ export default function Chat() {
         </div>
         {profileActive && (
           <div className="glass-chip flex items-center gap-2 px-3 py-1.5 rounded-full shrink-0">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--accent-emerald)' }} />
             <span className="text-xs" style={{ color: 'var(--accent)' }}>
               {studentProfile.student?.name || 'Profile loaded'}
             </span>
