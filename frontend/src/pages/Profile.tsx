@@ -2,8 +2,9 @@ import { useState, useEffect, type MouseEvent as ReactMouseEvent } from 'react'
 import TranscriptUpload, { StudentProfile } from '../components/TranscriptUpload'
 import TimelineView from '../components/TimelineView'
 import ChatSidebar from '../components/ChatSidebar'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import RequirementGroup from '../components/RequirementGroup'
+import ProgressBar from '../components/ProgressBar'
+import ThemeButton from '../components/ThemeButton'
 
 interface AuditResult {
   program: string
@@ -41,7 +42,7 @@ type AuditProgressState = {
 
 function EmptyStateIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-10 w-10 text-emerald-300/90" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-10 w-10" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true" style={{ color: 'var(--accent)' }}>
       <path d="M3 8.5L12 4l9 4.5-9 4.5L3 8.5Z" />
       <path d="M7 10.5v4.25c0 1.1 2.24 2.25 5 2.25s5-1.15 5-2.25V10.5" />
       <path d="M21 8.5v5.5" />
@@ -49,31 +50,6 @@ function EmptyStateIcon() {
   )
 }
 
-function AuditMarkdown({ text }: { text: string }) {
-  const clean = (text || '')
-    .replace(/<thinking[\s\S]*?<\/thinking>/gi, '')
-    .replace(/<think[\s\S]*?<\/think>/gi, '')
-    .trim()
-
-  return (
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
-      components={{
-        table: ({ children }) => (
-          <table className="min-w-full text-xs border-collapse overflow-x-auto block">{children}</table>
-        ),
-        th: ({ children }) => (
-          <th className="border px-2 py-1 text-left" style={{ borderColor: 'var(--glass-border)', background: 'rgba(33,87,50,0.25)', color: 'var(--accent)' }}>{children}</th>
-        ),
-        td: ({ children }) => (
-          <td className="border px-2 py-1 align-top" style={{ borderColor: 'var(--glass-border)', color: 'var(--text-muted)' }}>{children}</td>
-        ),
-      }}
-    >
-      {clean}
-    </ReactMarkdown>
-  )
-}
 
 export default function Profile() {
   const [profile, setProfile] = useState<StudentProfile | null>(null)
@@ -89,7 +65,7 @@ export default function Profile() {
   const [sidebarWidth, setSidebarWidth] = useState(360)
   const [timelineExpandAll, setTimelineExpandAll] = useState(true)
 
-  // Load from localStorage on mount
+  // Load profile + cached audit results from localStorage on mount
   useEffect(() => {
     try {
       const stored = localStorage.getItem('gradYOU8_profile')
@@ -97,16 +73,46 @@ export default function Profile() {
         const p = JSON.parse(stored)
         setProfile(p)
         setAuditStarted(true)
-        runAudits(p)
+
+        // Restore cached audit results instead of re-running
+        const cachedAudits = localStorage.getItem('gradYOU8_audits')
+        const cachedCollege = localStorage.getItem('gradYOU8_college_audit')
+        if (cachedAudits) {
+          try { setAudits(JSON.parse(cachedAudits)) } catch { /* ignore */ }
+        }
+        if (cachedCollege) {
+          try { setCollegeAudit(JSON.parse(cachedCollege)) } catch { /* ignore */ }
+        }
+
+        // Only run audits if there are no cached results
+        if (!cachedAudits) {
+          runAudits(p)
+        }
       }
     } catch {
       // ignore
     }
   }, [])
 
+  // Persist audit results to localStorage
+  useEffect(() => {
+    if (audits.length > 0) {
+      localStorage.setItem('gradYOU8_audits', JSON.stringify(audits))
+    }
+  }, [audits])
+
+  useEffect(() => {
+    if (collegeAudit) {
+      localStorage.setItem('gradYOU8_college_audit', JSON.stringify(collegeAudit))
+    }
+  }, [collegeAudit])
+
   async function runAudits(p: StudentProfile) {
     setAuditLoading(true)
     setAuditError(null)
+    setAudits([])
+    setCollegeAudit(null)
+    setView('audit')
     const programNames = (p.programs || []).map(pr => pr.name).filter(Boolean) as string[]
     setAuditProgress({
       phase: 'programs',
@@ -128,6 +134,8 @@ export default function Profile() {
         body: JSON.stringify({
           courses: p.courses,
           programs: p.programs,
+          student: p.student,
+          gpa: p.gpa,
         }),
       })
 
@@ -247,6 +255,8 @@ export default function Profile() {
           body: JSON.stringify({
             courses: p.courses,
             programs: p.programs,
+            student: p.student,
+            gpa: p.gpa,
           }),
         })
         if (!res.ok) {
@@ -290,23 +300,14 @@ export default function Profile() {
     setTimelineExpandAll(true)
     setSidebarVisible(true)
     localStorage.removeItem('gradYOU8_profile')
+    localStorage.removeItem('gradYOU8_audits')
+    localStorage.removeItem('gradYOU8_college_audit')
     setUploadSession(prev => prev + 1)
   }
 
   const profileActive = profile !== null && auditStarted
   const minSidebarWidth = 280
   const maxSidebarWidth = 640
-
-  useEffect(() => {
-    if (profileActive && view === 'timeline') {
-      document.body.style.overflowY = 'hidden'
-      return () => {
-        document.body.style.overflowY = ''
-      }
-    }
-    document.body.style.overflowY = ''
-    return undefined
-  }, [profileActive, view])
 
   function startSidebarResize(e: ReactMouseEvent<HTMLElement>) {
     e.preventDefault()
@@ -336,21 +337,21 @@ export default function Profile() {
   function renderHeader() {
     if (!profile) return null
     const { student, gpa, programs } = profile
-    const gpaColor = gpa >= 3.5 ? 'text-emerald-400' : gpa >= 3.0 ? 'text-amber-400' : 'text-red-400'
+    const gpaColor = gpa >= 3.5 ? 'var(--accent-emerald)' : gpa >= 3.0 ? 'var(--accent-amber)' : 'var(--accent-red)'
 
     return (
-      <div className="glass surface-card glass-prism rounded-3xl px-6 py-5">
+      <div className="glass surface-card glass-prism rounded-3xl px-6 py-5 profile-enter-1">
         <div className="flex flex-wrap items-center justify-between gap-4">
           {/* Student info */}
           <div className="flex flex-wrap items-center gap-4">
             <div>
-              <p className="font-semibold text-xl leading-tight tracking-tight" style={{ color: 'var(--text-primary)' }}>{student.name || 'Unknown'}</p>
+              <p className="font-semibold text-xl leading-tight tracking-tight" style={{ color: 'var(--text-primary)', fontFamily: "'Fraunces', serif", fontStyle: 'italic' }}>{student.name || 'Unknown'}</p>
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>ID: {student.id || '—'} · {student.school || '—'}</p>
             </div>
             <div className="h-8 w-px hidden sm:block" style={{ background: 'var(--glass-border)' }} />
             <div>
               <p className="text-xs uppercase tracking-wide mb-0.5" style={{ color: 'var(--text-subtle)' }}>GPA</p>
-              <p className={`text-xl font-bold font-mono ${gpaColor}`}>
+              <p className="text-xl font-bold font-mono" style={{ color: gpaColor }}>
                 {gpa ? gpa.toFixed(2) : '—'}
               </p>
             </div>
@@ -361,9 +362,9 @@ export default function Profile() {
                   key={i}
                   className="px-2.5 py-1 rounded-full text-xs font-medium"
                   style={{
-                    background: 'rgba(33, 87, 50, 0.22)',
-                    border: '1px solid rgba(76, 217, 130, 0.28)',
-                    color: 'var(--accent)',
+                    background: 'var(--satisfied-bg)',
+                    border: '1px solid var(--satisfied-border)',
+                    color: 'var(--satisfied-color)',
                   }}
                 >
                   {p.type === 'minor' ? 'Minor' : 'Major'}: {p.name.split(',')[0].split(' with ')[0].trim()}
@@ -372,21 +373,33 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* View toggle */}
-          <div className="flex items-center gap-1 glass-chip rounded-full p-1">
+          {/* View toggle + re-audit */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 glass-chip rounded-full p-1">
+              <button
+                onClick={() => setView('timeline')}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-medium ${view === 'timeline' ? 'glass-button text-white' : 'transition-colors'}`}
+                style={view !== 'timeline' ? { color: 'var(--text-muted)' } : undefined}
+              >
+                Timeline
+              </button>
+              <button
+                onClick={() => setView('audit')}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-medium ${view === 'audit' ? 'glass-button text-white' : 'transition-colors'}`}
+                style={view !== 'audit' ? { color: 'var(--text-muted)' } : undefined}
+              >
+                Audit
+              </button>
+            </div>
             <button
-              onClick={() => setView('timeline')}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-medium ${view === 'timeline' ? 'glass-button text-white' : 'transition-colors'}`}
-              style={view !== 'timeline' ? { color: 'var(--text-muted)' } : undefined}
+              type="button"
+              onClick={() => { if (profile && !auditLoading) runAudits(profile) }}
+              disabled={auditLoading}
+              className="px-3.5 py-1.5 rounded-full text-xs font-medium glass-chip transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ color: 'var(--text-muted)' }}
+              title="Re-run degree audit"
             >
-              Timeline
-            </button>
-            <button
-              onClick={() => setView('audit')}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-medium ${view === 'audit' ? 'glass-button text-white' : 'transition-colors'}`}
-              style={view !== 'audit' ? { color: 'var(--text-muted)' } : undefined}
-            >
-              Audit
+              {auditLoading ? 'Auditing…' : 'Re-audit'}
             </button>
           </div>
         </div>
@@ -441,7 +454,7 @@ export default function Profile() {
             <ul className="space-y-2">
               {auditProgress.completed.map(c => (
                 <li key={c.name} className="flex items-center gap-2 text-xs">
-                  <span className={c.hasError ? 'text-amber-400' : 'text-emerald-400'} aria-hidden>
+                  <span aria-hidden>
                     {c.hasError ? '⚠' : '✓'}
                   </span>
                   <span className="flex-1 min-w-0 truncate" style={{ color: 'var(--text-muted)' }}>{shortLabel(c.name)}</span>
@@ -475,7 +488,7 @@ export default function Profile() {
 
     if (auditError) {
       return (
-        <div className="glass rounded-xl px-6 py-4 text-red-300 text-sm border border-red-400/35">
+        <div className="glass rounded-xl px-6 py-4 text-sm border" style={{ color: 'var(--accent-red)', borderColor: 'var(--accent-red)' }}>
           {auditError}
         </div>
       )
@@ -491,9 +504,9 @@ export default function Profile() {
 
     function renderAuditCard(audit: AuditResult, label?: string) {
       const isCollege = audit.is_college
-      const cardBorderColor = isCollege ? 'rgba(165, 20, 23, 0.35)' : 'var(--glass-border)'
-      const labelColor = isCollege ? 'var(--accent-red)' : 'var(--accent)'
-      const labelBg = isCollege ? 'rgba(165, 20, 23, 0.12)' : 'rgba(33, 87, 50, 0.22)'
+      const cardBorderColor = 'var(--glass-border)'
+      const labelColor = isCollege ? 'var(--accent)' : 'var(--satisfied-color)'
+      const labelBg = isCollege ? 'var(--glass-bg)' : 'var(--satisfied-bg)'
 
       return (
         <div key={label || audit.program} className="glass surface-card rounded-xl p-6 interactive-lift glass-glow" style={{ borderColor: cardBorderColor }}>
@@ -505,36 +518,57 @@ export default function Profile() {
                   {label}
                 </span>
               )}
-              <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{audit.program}</h3>
+              <h3 className="font-semibold" style={{ color: 'var(--text-primary)', fontFamily: "'Fraunces', serif", fontStyle: 'italic' }}>{audit.program}</h3>
               {audit.school && (
                 <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{audit.school}</p>
               )}
             </div>
             <div className="flex flex-col items-end gap-1 shrink-0">
               <span className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Overall</span>
-              <span className={`text-2xl font-bold font-mono ${
-                audit.overall_percent >= 80 ? 'text-emerald-400'
-                : audit.overall_percent >= 40 ? 'text-amber-400'
-                : 'text-red-400'
-              }`}>
+              <span className="text-2xl font-bold font-mono" style={{
+                color: audit.overall_percent >= 80 ? 'var(--accent-emerald)'
+                : audit.overall_percent >= 40 ? 'var(--accent-amber)'
+                : 'var(--accent-red)'
+              }}>
                 {audit.overall_percent}%
               </span>
             </div>
           </div>
 
           {audit.error ? (
-            <div className="glass rounded-lg px-4 py-3 text-amber-300 text-sm border border-amber-400/35">
+            <div className="glass rounded-lg px-4 py-3 text-sm border" style={{ color: 'var(--accent-amber)', borderColor: 'var(--accent-amber)' }}>
               {audit.error}
             </div>
           ) : (
             <>
-              <div className="glass rounded-lg px-4 py-3 text-sm" style={{ color: 'var(--text-muted)' }}>
-                {(audit.notes && audit.notes.length > 0) ? (
-                  <AuditMarkdown text={audit.notes.slice(0, 8).join('\n\n')} />
-                ) : (
-                  'No textual comparison summary available yet.'
-                )}
-              </div>
+              {/* Overall progress bar */}
+              <ProgressBar
+                label="Degree Completion"
+                percent={audit.overall_percent}
+                color={
+                  audit.overall_percent >= 80 ? 'bg-emerald-500'
+                  : audit.overall_percent >= 40 ? 'bg-amber-500'
+                  : 'bg-red-500'
+                }
+              />
+
+              {/* Requirement groups */}
+              {audit.groups && audit.groups.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                  {audit.groups.map((group, j) => (
+                    <RequirementGroup key={j} group={group} />
+                  ))}
+                </div>
+              )}
+
+              {/* Notes (if any) */}
+              {audit.notes && audit.notes.length > 0 && (
+                <div className="glass rounded-lg px-4 py-3 text-xs mt-3" style={{ color: 'var(--text-muted)' }}>
+                  {audit.notes.map((note, i) => (
+                    <p key={i}>- {note}</p>
+                  ))}
+                </div>
+              )}
             </>
           )}
         </div>
@@ -560,11 +594,11 @@ export default function Profile() {
   return (
     <div className="flex gap-0 h-full">
       {/* Main content area */}
-      <div className="flex-1 flex flex-col gap-6 min-w-0 pr-4">
+      <div className={`flex-1 flex flex-col gap-6 min-w-0 transition-all ${sidebarVisible && profileActive ? 'pr-[380px]' : ''}`}>
         {/* Page header */}
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-3 profile-enter-1">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight mb-1" style={{ color: 'var(--text-primary)' }}>gradYOU8</h1>
+            <h1 className="text-3xl font-semibold tracking-tight mb-1" style={{ color: 'var(--text-primary)', fontFamily: "'Fraunces', serif", fontStyle: 'italic' }}>gradYOU8</h1>
             <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
               {profileActive
                 ? 'Review your student profile and degree progress.'
@@ -572,14 +606,27 @@ export default function Profile() {
             </p>
           </div>
           {profileActive && (
-            <button
-              type="button"
-              onClick={handleUploadAnother}
-              className="text-xs px-3.5 py-1.5 rounded-full glass-chip transition-colors shrink-0"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              Upload another transcript
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <ThemeButton />
+              {!sidebarVisible && (
+                <button
+                  type="button"
+                  onClick={() => setSidebarVisible(true)}
+                  className="text-xs px-3.5 py-1.5 rounded-full glass-chip transition-colors"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  Show chat
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleUploadAnother}
+                className="text-xs px-3.5 py-1.5 rounded-full glass-chip transition-colors"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                Upload another transcript
+              </button>
+            </div>
           )}
         </div>
 
@@ -618,7 +665,7 @@ export default function Profile() {
             {renderHeader()}
 
             {/* Timeline or Audit view */}
-            <div className="pb-10">
+            <div>
               {view === 'timeline' ? renderTimeline() : renderAudit()}
             </div>
           </>
@@ -632,23 +679,13 @@ export default function Profile() {
         )}
       </div>
 
-      {/* Chat sidebar controls and panel */}
-      {profileActive && (
-        <div className="shrink-0 flex items-stretch">
-          {!sidebarVisible && (
-            <div className="pl-2">
-              <button
-                type="button"
-                onClick={() => setSidebarVisible(true)}
-                className="text-xs px-3.5 py-1.5 rounded-full glass-chip transition-colors"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                Show chat
-              </button>
-            </div>
-          )}
-
-          <div className={`relative ml-2 ${sidebarVisible ? '' : 'hidden'}`}>
+      {/* Chat sidebar panel — only when visible */}
+      {profileActive && sidebarVisible && (
+        <div
+          className="fixed top-4 right-0 flex items-stretch z-30 mr-2"
+          style={{ width: `${sidebarWidth}px`, height: 'calc(100vh - 2rem)' }}
+        >
+          <div className="relative ml-2 flex-1">
             <div
               onMouseDown={startSidebarResize}
               className="absolute -left-2 top-0 h-full w-3 cursor-col-resize"
@@ -656,8 +693,8 @@ export default function Profile() {
               title="Drag to resize"
             />
             <div
-              className="glass-strong surface-elevated glass-prism rounded-2xl overflow-hidden flex flex-col h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)]"
-              style={{ width: `${sidebarWidth}px` }}
+              className="glass-strong surface-elevated glass-prism rounded-2xl overflow-hidden flex flex-col h-full"
+              style={{ width: '100%' }}
             >
               <div className="flex justify-end px-2 pt-2">
                 <button

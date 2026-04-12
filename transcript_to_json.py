@@ -59,24 +59,11 @@ def extract_pdf_text(pdf_path: str) -> str:
 
 # ── LLM Parsing ───────────────────────────────────────────────────────────────
 
-def get_token():
-    auth_path = os.path.join(os.environ["APPDATA"], "npm", "node_modules",
-                             "openclaw", "dist", "extensions", "acpx",
-                             "agents", "main", "agent", "auth-profiles.json")
-    if not os.path.exists(auth_path):
-        # Fallback for local dev
-        auth_path = r"C:\Users\ethan\.openclaw\agents\main\agent\auth-profiles.json"
-    with open(auth_path) as f:
-        profiles = json.load(f)
-    for name, cfg in profiles.get("profiles", profiles).items():
-        if "minimax" in name.lower():
-            return cfg.get("access", "")
-    return ""
-
-
 def minimax(messages, max_tokens=8000):
     import urllib.request, urllib.error
-    token = get_token()
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(os.path.dirname(__file__), "backend", ".env"))
+    token = os.getenv("MINIMAX_API_KEY", "")
     payload = {
         "model": "MiniMax-M2.7",
         "messages": messages,

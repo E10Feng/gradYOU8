@@ -1,0 +1,106 @@
+{
+  "_meta": {
+    "description": "Maps legacy WashU course codes to current bulletin codes. Community-maintained. Only mechanical renumbering facts — no semantic judgments.",
+    "last_verified": "2026-04-11",
+    "verified_against": "WashU Bulletin 2025-26"
+  },
+  "mappings": {
+    "CHEM 111A": {
+      "new_code": "CHEM 1701",
+      "title": "General Chemistry I",
+      "verified": true,
+      "source": "bulletin_arts_sciences.tree.json"
+    },
+    "CHEM 112A": {
+      "new_code": "CHEM 1702",
+      "title": "General Chemistry II",
+      "verified": true,
+      "source": "bulletin_arts_sciences.tree.json"
+    },
+    "CHEM 151": {
+      "new_code": "CHEM 1751",
+      "title": "General Chemistry Laboratory I",
+      "verified": true,
+      "source": "bulletin_arts_sciences.tree.json"
+    },
+    "CHEM 152": {
+      "new_code": "CHEM 1752",
+      "title": "General Chemistry Laboratory II",
+      "verified": true,
+      "source": "bulletin_arts_sciences.tree.json"
+    },
+    "CHEM 261": {
+      "new_code": "CHEM 2561",
+      "title": "Organic Chemistry I With Lab",
+      "verified": true,
+      "source": "bulletin_arts_sciences.tree.json"
+    },
+    "CHEM 262": {
+      "new_code": "CHEM 2562",
+      "title": "Organic Chemistry II With Lab",
+      "verified": true,
+      "source": "bulletin_arts_sciences.tree.json"
+    },
+    "PHYSICS 191": {
+      "new_code": "PHYSICS 1740",
+      "title": "Physics I",
+      "verified": true,
+      "source": "bulletin_arts_sciences.tree.json"
+    },
+    "PHYSICS 191L": {
+      "new_code": "PHYSICS 1741",
+      "title": "Physics I Laboratory",
+      "verified": true,
+      "source": "bulletin_arts_sciences.tree.json"
+    },
+    "PHYSICS 192": {
+      "new_code": "PHYSICS 1742",
+      "title": "Physics II",
+      "verified": true,
+      "source": "bulletin_arts_sciences.tree.json"
+    },
+    "PHYSICS 192L": {
+      "new_code": "PHYSICS 1743",
+      "title": "Physics II Laboratory",
+      "verified": true,
+      "source": "bulletin_arts_sciences.tree.json"
+    },
+    "CSE 131": {
+      "new_code": "CSE 1301",
+      "title": "Introduction to Computer Science",
+      "verified": true,
+      "source": "bulletin_engineering.tree.json"
+    },
+    "CSE-E81 131": {
+      "new_code": "CSE 1301",
+      "title": "Introduction to Computer Science",
+      "verified": true,
+      "source": "bulletin_engineering.tree.json"
+    },
+    "CSE 247": {
+      "new_code": "CSE 2407",
+      "title": "Data Structures and Algorithms",
+      "verified": true,
+      "source": "bulletin_engineering.tree.json"
+    },
+    "CSE-E81 247": {
+      "new_code": "CSE 2407",
+      "title": "Data Structures and Algorithms",
+      "verified": true,
+      "source": "bulletin_engineering.tree.json"
+    },
+    "CSE 240": {
+      "new_code": "CSE 2400",
+      "title": "Logic and Discrete Mathematics",
+      "verified": true,
+      "source": "bulletin_engineering.tree.json"
+    },
+    "CSE-E81 240": {
+      "new_code": "CSE 2400",
+      "title": "Logic and Discrete Mathematics",
+      "verified": true,
+      "source": "bulletin_engineering.tree.json"
+    }
+  },
+  "pending_submissions": []
+}

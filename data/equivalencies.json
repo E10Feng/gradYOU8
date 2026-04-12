@@ -1,23 +1,16 @@
 {
   "_meta": {
-    "description": "WashU course equivalency table. Maps non-standard codes (CSE-E81, old CHEM codes, etc.) to their official WashU equivalents. Used by the degree audit to match student courses against requirements.",
+    "description": "WashU semantic equivalency table. Contains real equivalence judgments (not mechanical renumbering — see course_code_map.json). Used by the degree audit.",
     "school": "Washington University in St. Louis",
-    "last_updated": "2026-04-04"
+    "last_updated": "2026-04-11"
   },
   "CSE": {
-    "CSE-E81 131": {
-      "official": "CSE 131",
-      "title": "Introduction to Computer Science",
-      "description": "Principles of computer science. CSE-E81 131 and CSE 131 are identical courses.",
+    "CSE 240": {
+      "official": "CSE 2400",
+      "title": "Logic and Discrete Mathematics",
+      "description": "Equivalent to CSE-E81 240 after E-digit suffix normalization.",
       "equiv_status": "confirmed",
-      "source": "WashU Bulletin CSE 131 course description: 'Same as CSE 131. Students may not receive credit for both.'"
-    },
-    "CSE-E81 247": {
-      "official": "CSE 2407",
-      "title": "Microcontrollers and Embedded Systems",
-      "description": "Embedded systems programming in C. CSE-E81 247 and CSE 2407 are identical courses.",
-      "equiv_status": "confirmed",
-      "source": "WashU Bulletin CSE 2407 course description: 'Same as CSE-E81 247. Students may not receive credit for both.'"
+      "note": "Maps to CSE 2400 after _normalize_code strips the -E81 suffix."
     },
     "CSE-E81 132": {
       "official": null,
@@ -25,79 +18,6 @@
       "description": "Topics include transistor, digital logic, and computer architecture. NOT equivalent to CSE 1302.",
       "equiv_status": "not_equivalent",
       "note": "CSE 1302 is Object-Oriented Software Development (C++/Java). CSE-E81 132 is circuits/digital design. They cover completely different material."
-    },
-    "SDS 3211": {
-      "official": "SDS 3211",
-      "title": "Statistics for Data Science I",
-      "equiv_status": "official_code",
-      "note": "E10's actual course — already using official code"
-    }
-  },
-  "CHEM": {
-    "CHEM 111A": {
-      "official": "CHEM 111",
-      "title": "First-Year Chemistry",
-      "equiv_status": "confirmed",
-      "note": "CHEM 111 or CHEM 151 or CHEM 161 satisfies the Chemistry foundation for Biology majors"
-    },
-    "CHEM 112A": {
-      "official": "CHEM 112",
-      "title": "First-Year Chemistry Laboratory",
-      "equiv_status": "lab",
-      "note": "Lab companion to CHEM 111A/CHEM 111"
-    },
-    "CHEM 151": {
-      "official": "CHEM 151",
-      "title": "Principles of Chemistry I",
-      "equiv_status": "official_code",
-      "note": "Already official code — satisfies CHEM 151 requirement"
-    },
-    "CHEM 152": {
-      "official": "CHEM 152",
-      "title": "Laboratory I",
-      "equiv_status": "lab",
-      "note": "Lab companion to CHEM 151"
-    },
-    "CHEM 261": {
-      "official": "CHEM 261",
-      "title": "Principles of Chemistry II",
-      "equiv_status": "official_code"
-    },
-    "CHEM 262": {
-      "official": "CHEM 262",
-      "title": "Laboratory II",
-      "equiv_status": "lab"
-    }
-  },
-  "PHYSICS": {
-    "PHYSICS 191": {
-      "official": "PHYSICS 197",
-      "title": "Physics I",
-      "equiv_status": "confirmed",
-      "note": "PHYSICS 197 and PHYSICS 198 satisfy the Physics requirement for Biology majors. PHYSICS 191 is the alternate code for the same course."
-    },
-    "PHYSICS 191L": {
-      "official": "PHYSICS 197L",
-      "title": "Physics I Laboratory",
-      "equiv_status": "lab"
-    },
-    "PHYSICS 192": {
-      "official": "PHYSICS 198",
-      "title": "Physics II",
-      "equiv_status": "confirmed"
-    },
-    "PHYSICS 192L": {
-      "official": "PHYSICS 198L",
-      "title": "Physics II Laboratory",
-      "equiv_status": "lab"
-    }
-  },
-  "MATH": {
-    "MATH 309": {
-      "official": "MATH 2200",
-      "title": "Matrix Algebra",
-      "equiv_status": "confirmed",
-      "note": "MATH 309 is the old code for Matrix Algebra. The Biology major accepts MATH 1510, MATH 2200, or MATH 3200. E10's MATH 309 = MATH 2200."
     }
   },
   "BIOL": {
@@ -111,22 +31,27 @@
   "_rules": {
     "description": "How to apply these equivalencies in the audit",
     "matching_rules": [
-      "When checking if a requirement is satisfied, look up the student's actual course code in this table",
-      "If equiv_status is 'confirmed', the course satisfies the requirement for the official code",
-      "If equiv_status is 'not_equivalent', the course does NOT satisfy that requirement even if the codes look similar",
-      "If equiv_status is 'official_code', the course already uses the correct code",
-      "If equiv_status is 'lab', check if the corresponding lecture course is also taken",
-      "If equiv_status is 'research', it may count toward elective requirements but not core requirements"
+      "When checking if a requirement is satisfied, look up the student's actual course code in course_code_map.json first (mechanical renumbering), then in this table (semantic judgments).",
+      "If equiv_status is 'confirmed', the course satisfies the requirement for the official code.",
+      "If equiv_status is 'not_equivalent', the course does NOT satisfy that requirement even if the codes look similar.",
+      "If equiv_status is 'official_code', the course already uses the correct code.",
+      "If equiv_status is 'lab', check if the corresponding lecture course is also taken.",
+      "If equiv_status is 'research', it may count toward elective requirements but not core requirements.",
+      "If equiv_status is 'skip', the code is a helper (PLTL, etc.) and neither satisfies nor blocks requirements."
     ],
     "cs_minor_equivalents": {
-      "CSE 131": ["CSE-E81 131"],
+      "CSE 1301": ["CSE-E81 131", "CSE 131"],
       "CSE 1302": [],
-      "CSE 2407": ["CSE-E81 247"],
-      "CSE 3302": ["CSE 3302"]
+      "CSE 2407": ["CSE-E81 247", "CSE 247"],
+      "CSE 3302": ["CSE 3302"],
+      "CSE 2400": ["CSE-E81 240", "CSE 240"],
+      "CSE 3300": [],
+      "CSE 3601": []
     },
     "comp_bio_outside_electives": {
-      "CSE 1301": ["CSE-E81 131"],
-      "CSE 2407": ["CSE-E81 247"]
+      "CSE 1301": ["CSE-E81 131", "CSE 131"],
+      "CSE 2407": ["CSE-E81 247", "CSE 247"],
+      "CSE 2400": ["CSE-E81 240", "CSE 240"]
     }
   }
 }

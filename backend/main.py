@@ -17,11 +17,14 @@ if sys.platform == "win32":
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 # â”€â”€ Load env â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 load_dotenv()
@@ -31,12 +34,16 @@ from routers.requirements import router as requirements_router
 from routers.audit import router as audit_router
 from routers.upload import router as upload_router
 from routers.audit_full import router as audit_full_router
+from routers.feedback import router as feedback_router
 
 DATA_DIR = Path(os.getenv("DATA_DIR", "../data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 # â”€â”€ App setup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="WashU Navigator API", version="0.1.0")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 # â”€â”€ Startup: pre-warm requirements cache â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -50,13 +57,15 @@ app.include_router(requirements_router)
 app.include_router(audit_router)
 app.include_router(upload_router)
 app.include_router(audit_full_router)
+app.include_router(feedback_router)
 
 # Student profile state (set by /api/upload-transcript)
 app.state.current_profile = None
 
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:4173").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -326,7 +335,8 @@ async def get_tree():
     return {"doc_name": tree.get("doc_name", ""), "doc_description": tree.get("doc_description", ""), "num_nodes": len(tree.get("structure", []))}
 
 @app.post("/chat", response_model=QueryResponse)
-async def chat(req: QueryRequest):
+@limiter.limit("10/minute")
+async def chat(req: QueryRequest, request: Request):
     """RAG query against the bulletin using tree-based retrieval."""
     try:
         tree = load_tree()
@@ -354,7 +364,8 @@ async def chat(req: QueryRequest):
 
 
 @app.post("/chat/stream")
-async def chat_stream(req: QueryRequest):
+@limiter.limit("10/minute")
+async def chat_stream(req: QueryRequest, request: Request):
     """SSE stream for chat progress + incremental answer text."""
     try:
         tree = load_tree()
@@ -412,7 +423,9 @@ if STATIC_DIR.exists():
 
     @app.get("/{path:path}")
     async def serve_frontend(path: str):
-        file_path = STATIC_DIR / path
+        file_path = (STATIC_DIR / path).resolve()
+        if not str(file_path).startswith(str(STATIC_DIR.resolve())):
+            raise HTTPException(status_code=403, detail="Access denied")
         if file_path.exists() and file_path.is_file():
             return FileResponse(file_path)
         index = STATIC_DIR / "index.html"

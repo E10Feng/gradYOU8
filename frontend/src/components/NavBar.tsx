@@ -7,7 +7,7 @@ export default function NavBar() {
   return (
     <nav className="glass-strong border-b px-6 py-4 flex items-center justify-between" style={{ borderBottomColor: 'var(--glass-border-mid)' }}>
       <div className="flex items-center gap-8">
-        <Link to="/" className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+        <Link to="/" className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)', fontFamily: "'Fraunces', serif", fontStyle: 'italic' }}>
           WashU Navigator
         </Link>
         <div className="flex gap-6 text-sm">
@@ -27,7 +27,7 @@ export default function NavBar() {
           </Link>
         </div>
       </div>
-      <span className="text-xs" style={{ color: 'var(--text-subtle)' }}>WashU Graduation Navigator</span>
+      <span className="text-xs hidden sm:inline" style={{ color: 'var(--text-subtle)' }}>WashU Graduation Navigator</span>
     </nav>
   )
 }

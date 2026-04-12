@@ -71,8 +71,8 @@ export default function Courses() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight mb-2">Course Catalog</h1>
-        <p className="text-[color:var(--text-muted)] text-sm leading-relaxed">
+        <h1 className="text-3xl font-semibold tracking-tight mb-2" style={{ color: 'var(--text-primary)' }}>Course Catalog</h1>
+        <p className="text-sm text-[color:var(--text-muted)] leading-relaxed">
           Browse popular WashU courses. Click a course to see its description.
         </p>
       </div>
@@ -83,15 +83,17 @@ export default function Courses() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search by course code, title, or department..."
-          className="w-full glass-input rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500"
+          className="w-full glass-input rounded-lg px-4 py-3 text-sm placeholder-[color:var(--text-subtle)]"
+          style={{ color: 'var(--text-primary)' }}
         />
 
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setSelectedDept(null)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
-              selectedDept === null ? 'glass-button text-white' : 'glass-chip text-[color:var(--text-muted)] hover:text-white'
+              selectedDept === null ? 'glass-button text-white' : 'glass-chip transition-colors'
             }`}
+            style={selectedDept !== null ? { color: 'var(--text-muted)' } : undefined}
           >
             All
           </button>
@@ -100,8 +102,9 @@ export default function Courses() {
               key={dept}
               onClick={() => setSelectedDept(dept === selectedDept ? null : dept)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
-                selectedDept === dept ? 'glass-button text-white' : 'glass-chip text-[color:var(--text-muted)] hover:text-white'
+                selectedDept === dept ? 'glass-button text-white' : 'glass-chip transition-colors'
               }`}
+              style={selectedDept !== dept ? { color: 'var(--text-muted)' } : undefined}
             >
               {dept}
             </button>
@@ -110,29 +113,30 @@ export default function Courses() {
       </div>
 
       {filtered.length === 0 ? (
-        <p className="text-slate-400 text-sm text-center py-8">No courses match your search.</p>
+        <p className="text-sm text-center py-8" style={{ color: 'var(--text-muted)' }}>No courses match your search.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(course => (
             <div
               key={course.id}
               onClick={() => setExpandedId(expandedId === course.id ? null : course.id)}
-              className={`glass surface-card rounded-xl p-4 cursor-pointer border transition interactive-lift ${
-                expandedId === course.id ? 'border-emerald-300/65' : 'hover:border-slate-500/60'
-              }`}
+              className="glass surface-card rounded-xl p-4 cursor-pointer transition interactive-lift"
+              style={{
+                border: `1px solid ${expandedId === course.id ? 'var(--satisfied-border)' : 'var(--surface-card-border)'}`,
+              }}
             >
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="font-mono text-emerald-300 text-sm font-medium">{course.id}</p>
-                  <p className="text-white text-sm font-medium mt-0.5">{course.title}</p>
+                  <p className="font-mono text-sm font-medium" style={{ color: 'var(--accent)' }}>{course.id}</p>
+                  <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--text-primary)' }}>{course.title}</p>
                 </div>
-                <span className="text-xs glass-chip text-slate-200 px-2 py-0.5 rounded shrink-0">
+                <span className="text-xs glass-chip px-2 py-0.5 rounded shrink-0" style={{ color: 'var(--text-muted)' }}>
                   {course.credits} cr
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-1">{course.department}</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{course.department}</p>
               {expandedId === course.id && (
-                <p className="text-slate-300 text-xs mt-3 pt-3 border-t border-slate-600/40">{course.description}</p>
+                <p className="text-xs mt-3 pt-3" style={{ color: 'var(--text-muted)', borderTop: '1px solid var(--glass-border)' }}>{course.description}</p>
               )}
             </div>
           ))}

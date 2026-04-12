@@ -1,9 +1,7 @@
 """
-GET /api/requirements — return program requirement structure.
+GET /api/requirements — legacy endpoint.
 """
 from fastapi import APIRouter, HTTPException
-
-from services.audit_engine import PROGRAMS
 
 router = APIRouter(prefix="/api", tags=["requirements"])
 
@@ -11,15 +9,15 @@ router = APIRouter(prefix="/api", tags=["requirements"])
 @router.get("/requirements")
 async def get_requirements(program: str):
     """
-    Return the requirement groups for a WashU program.
+    Legacy requirements endpoint.
 
-    Query params:
-        program: program code (e.g. "biology-ba", "cs-minor-engineering")
+    The old hardcoded requirements table was removed.
+    Use POST /api/audit-full to retrieve dynamic requirement status.
     """
-    if program not in PROGRAMS:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Program '{program}' not found. "
-                   f"Available: {list(PROGRAMS.keys())}",
-        )
-    return PROGRAMS[program]
+    raise HTTPException(
+        status_code=410,
+        detail=(
+            "The /api/requirements endpoint is deprecated. "
+            "Use POST /api/audit-full for dynamic program requirements."
+        ),
+    )

@@ -3,6 +3,7 @@ POST /api/upload-transcript — accept a PDF transcript, parse it, and store the
 """
 import json
 import subprocess
+import sys
 import uuid
 import asyncio
 import threading
@@ -49,7 +50,7 @@ def _normalize_program_name(raw_name: str) -> tuple[str, str]:
 def _run_parser(pdf_path: Path) -> dict:
     """Run transcript_to_json.py and return parsed JSON output."""
     result = subprocess.run(
-        ["C:\\Users\\Ethan\\AppData\\Local\\Programs\\Python\\Python311\\python.exe", str(TRANSCRIPT_SCRIPT), str(pdf_path)],
+        [sys.executable, str(TRANSCRIPT_SCRIPT), str(pdf_path)],
         capture_output=True,
         text=True,
         timeout=120,
@@ -62,7 +63,9 @@ def _run_parser(pdf_path: Path) -> dict:
     if not profile_path.exists():
         raise RuntimeError(f"Parser did not produce profile file: {profile_path}")
     with open(profile_path, "r", encoding="utf-8") as f:
-        return json.load(f)
+        data = json.load(f)
+    profile_path.unlink(missing_ok=True)
+    return data
 
 
 @router.post("/upload-transcript")
@@ -88,6 +91,11 @@ async def upload_transcript(file: UploadFile = File(...), request: Request = Non
 
     try:
         content = await file.read()
+        MAX_PDF_BYTES = 20 * 1024 * 1024  # 20 MB
+        if len(content) > MAX_PDF_BYTES:
+            raise HTTPException(413, "File too large. Maximum size is 20 MB.")
+        if not content.startswith(b"%PDF"):
+            raise HTTPException(400, "File does not appear to be a valid PDF.")
         tmp_path.write_bytes(content)
 
         # Parse the PDF

@@ -16,7 +16,7 @@ LIBS_PATH = _BACKEND_ROOT / "libs" / "pageindex_agent"
 if str(LIBS_PATH) not in sys.path:
     sys.path.insert(0, str(LIBS_PATH))
 
-from pageindex_agent.utils import ChatGPT_API
+from services.llm import complete
 from services.agentic_retriever import agentic_collect_evidence
 from services.program_indexer import extract_programs_from_query
 
@@ -58,39 +58,70 @@ _cache: dict[str, dict] = {}
 
 
 # ── Parsing prompt ─────────────────────────────────────────────────────────────
-EXTRACT_PROMPT = """You are a WashU degree requirements parser. Given raw bulletin text for a specific program,
-extract all requirement groups and return ONLY valid JSON.
+EXTRACT_PROMPT = """You are a WashU degree requirements parser. Given raw bulletin text,
+extract structured requirement groups for EXACTLY this program: {program_name}
 
-For each requirement group, identify:
-- name: short descriptive name (e.g. "Gateway Courses", "Upper-Level Biology Electives")
-- required_credits: total credits needed for this group (integer)
-- courses: list of specific course codes/numbers required (e.g. ["BIOL 296", "BIOL 297"])
-- distribution: boolean — is this a distribution/breadth requirement?
-- lab_required: boolean — does this group require a lab?
-- lab_options: list of lab course codes if lab_required is true, else []
+IMPORTANT: Only extract requirements for "{program_name}" — ignore other programs.
 
-Also extract:
-- program: full program name (e.g. "Biology, B.A.")
-- school: school name (e.g. "Arts & Sciences", "Engineering")
+# Group types
 
-Rules:
-- Only include courses explicitly listed as required in the text
+There are FOUR distinct group patterns. Identify which pattern each requirement is and
+emit the correct fields:
+
+## 1. Core / required courses (take ALL listed courses)
+Set `required_credits` to the sum of all course units. List every required course.
+When the bulletin says "X or Y" for one slot, emit ONE entry with `any_of`:
+  {{"any_of": [{{"code": "CHEM 1601", "title": "Principles of General Chemistry I"}}, {{"code": "CHEM 1701", "title": "General Chemistry I"}}], "credits": 3}}
+
+## 2. Credit bucket (take N credits from a department, e.g. "18 units of BIOL 3000+")
+Set `required_credits` to the credit target. Set `distribution: true`.
+For courses, use ONLY the department code: [{{"code": "BIOL", "title": ""}}].
+Do NOT list every possible course — just the department.
+
+## 3. Pick-one list (choose 1 course from a list, e.g. "Advanced Laboratory Course")
+Set `required_count: 1`, `required_credits: 0`. List all options as courses.
+The student only needs ONE — percentage is based on required_count, not list length.
+
+## 4. Area / breadth requirement (one from each area)
+When the bulletin says "at least one course from each of Area A, B, C", emit EACH AREA
+as its own SEPARATE group with `required_count: 1`, `required_credits: 0`.
+Name each group clearly (e.g. "Area A: Cellular and Molecular Biology").
+
+# Field reference
+
+For each group:
+- `name`: short descriptive name
+- `required_credits`: total credits needed (0 if count-based)
+- `required_count`: number of courses needed (0 if credit-based, 1 for pick-one)
+- `courses`: list of course objects: {{"code": "DEPT 1234", "title": "Course Title"}}
+- `distribution`: true for credit buckets and area/breadth groups, false for core courses
+- `lab_required`: true only if the text explicitly mentions "lab" or "laboratory" requirement
+- `lab_options`: list of lab course codes if lab_required is true, else []
+
+# Rules
+
+- Use ONLY course codes from the bulletin text — never substitute or guess codes
 - If a credit range is given (e.g. "12-15 credits"), use the minimum
-- lab_required should be true only if the word "lab" or "laboratory" appears in the requirement description
-- Return ONLY the JSON — no commentary, no markdown fences
+- Copy course titles exactly as listed in the bulletin
+- Do NOT mix group types: a "18 units of BIOL 3000+" is a credit bucket (type 2),
+  NOT a list of every BIOL 3000+ course
+- Return ONLY valid JSON — no commentary, no markdown fences, no ```
 
-Raw bulletin text:
+# Raw bulletin text
+
 {raw_text}
 
-Return ONLY valid JSON in this exact format:
+# Output format
+
 {{
-  "program": "...",
-  "school": "...",
+  "program": "full program name from bulletin",
+  "school": "Arts & Sciences or Engineering or ...",
   "groups": [
     {{
       "name": "...",
       "required_credits": 0,
-      "courses": ["..."],
+      "required_count": 0,
+      "courses": [{{"code": "DEPT 1234", "title": "Course Title"}}],
       "distribution": false,
       "lab_required": false,
       "lab_options": []
@@ -100,15 +131,15 @@ Return ONLY valid JSON in this exact format:
 """
 
 
-def _parse_with_llm_debug(raw_text: str) -> tuple[dict, dict]:
+def _parse_with_llm_debug(raw_text: str, program_name: str = "") -> tuple[dict, dict]:
     """Use MiniMax to parse raw bulletin text into structured requirements, with debug info."""
-    prompt = EXTRACT_PROMPT.format(raw_text=raw_text[:20000])
+    prompt = EXTRACT_PROMPT.format(raw_text=raw_text[:48000], program_name=program_name or "the program")
     dbg = {
         "parse_prompt_preview": prompt[:800],
         "parse_input_chars": len(raw_text or ""),
     }
     try:
-        response = ChatGPT_API(MINIMAX_MODEL, prompt)
+        response = complete(MINIMAX_MODEL, prompt)
         dbg["parse_response_preview"] = (response or "")[:1200]
         # Strip both <think> and <thinking> tags (MiniMax uses the latter)
         response = re.sub(r"<thinking[\s\S]*?</thinking>", "", response, flags=re.IGNORECASE)
@@ -132,9 +163,9 @@ def _parse_with_llm_debug(raw_text: str) -> tuple[dict, dict]:
         return {}, dbg
 
 
-def _parse_with_llm(raw_text: str) -> dict:
+def _parse_with_llm(raw_text: str, program_name: str = "") -> dict:
     """Use MiniMax to parse raw bulletin text into structured requirements."""
-    parsed, _dbg = _parse_with_llm_debug(raw_text)
+    parsed, _dbg = _parse_with_llm_debug(raw_text, program_name=program_name)
     return parsed
 
 
@@ -281,7 +312,18 @@ def get_requirements(program_name: str, program_type: str | None = None, school:
         return _cache[cache_key]
 
     raw_text = _fetch_program_text(program_name, program_type=program_type, school=school)
-    result = _parse_with_llm(raw_text)
+    result = _parse_with_llm(raw_text, program_name=canonical)
+
+    if not result or not result.get("groups"):
+        # Fallback: try the canonical bulletin title directly (handles cases where
+        # the profile program name doesn't appear verbatim in the bulletin but the
+        # canonical form does, e.g. "Genomics and Computational Biology Specialization").
+        if program_name != canonical:
+            try:
+                fallback_text = _fetch_program_text(canonical, program_type=program_type, school=school)
+                result = _parse_with_llm(fallback_text, program_name=canonical)
+            except Exception:
+                pass
 
     if not result or not result.get("groups"):
         raise ValueError(
@@ -307,7 +349,7 @@ def get_requirements_debug(program_name: str, program_type: str | None = None, s
             "debug": retr_dbg,
         }))
 
-    result, parse_dbg = _parse_with_llm_debug(evidence)
+    result, parse_dbg = _parse_with_llm_debug(evidence, program_name=program_name)
     if not result or not result.get("groups"):
         raise ValueError(json.dumps({
             "failure_stage": "parse_failed",
@@ -334,7 +376,9 @@ general education / graduation requirements, extract all requirement groups.
 For each requirement group, identify:
 - name: short descriptive name (e.g. "First-Year Writing", "Language Requirement", "Natural Sciences Distribution")
 - required_credits: total credits needed (integer), use 0 if only courses required without credit count
-- courses: list of specific course codes/numbers that satisfy this requirement (e.g. ["CWP 117", "EALC 227"])
+- courses: list of course objects with code AND title, e.g. [{{"code": "CWP 1170", "title": "Introduction to College Writing"}}]
+  Use the CURRENT course code from the bulletin. Include the course title exactly as listed.
+  If only a department is listed (e.g. "any humanities course"), use just the department code: {{"code": "HIST", "title": ""}}
 - distribution: boolean — is this a distribution/breadth requirement?
 - lab_required: boolean — does this group require a lab?
 - lab_options: list of lab course codes if lab_required is true, else []
@@ -345,7 +389,7 @@ Also extract:
 
 Rules:
 - Include only officially listed distribution categories
-- For "any" courses (e.g. "any humanities course"), list the department codes that count (e.g. ["AMCS", "HIST", "PHIL", "REL"])
+- For "any" courses (e.g. "any humanities course"), list the department codes that count (e.g. [{{"code": "AMCS", "title": ""}}, {{"code": "HIST", "title": ""}}])
 - Lab requirements: set lab_required=true only if "lab" or "laboratory" appears
 - Return ONLY valid JSON — no commentary, no markdown fences
 
@@ -360,7 +404,7 @@ Return ONLY valid JSON in this exact format:
     {{
       "name": "...",
       "required_credits": 0,
-      "courses": ["..."],
+      "courses": [{{"code": "DEPT 1234", "title": "Course Title"}}],
       "distribution": false,
       "lab_required": false,
       "lab_options": []
@@ -375,87 +419,49 @@ _college_cache: dict[str, dict] = {}
 
 def get_college_requirements(school_name: str) -> dict:
     """
-    Extract general education / graduation requirements for a college/school.
+    Return the natural-language requirements text for a college's general education requirements.
+    Uses the proven chat pipeline (agentic_retrieve) to get accurate bulletin content.
 
-    Args:
-        school_name: e.g. "arts-sciences", "engineering", "business"
-
-    Returns:
-        {
-          "program": "Arts & Sciences Graduation Requirements",
-          "school": "Arts & Sciences",
-          "groups": [
-            {
-              "name": "First-Year Writing",
-              "required_credits": 3,
-              "courses": ["CWP 117", "CWP 120"],
-              "distribution": false,
-              "lab_required": false,
-              "lab_options": []
-            },
-            {
-              "name": "Natural Sciences Distribution",
-              "required_credits": 6,
-              "courses": ["ASTR", "BIOL", "CHEM", "EES", "PHYS"],
-              "distribution": true,
-              "lab_required": false,
-              "lab_options": []
-            }
-          ]
-        }
+    Returns a dict with "requirements_text", "program", and "school" — the college audit
+    then passes this text to the LLM claims pipeline (same as major audit).
     """
+    from services.agentic_retriever import agentic_retrieve as _retrieve
+
     cache_key = school_name
     if cache_key in _college_cache:
         return _college_cache[cache_key]
 
-    # Map normalized school name to search terms
-    school_search_map = {
-        "arts-sciences": [
-            "Arts & Sciences graduation requirements",
-            "Arts & Sciences general education requirements",
-            "College of Arts & Sciences degree requirements",
-        ],
-        "engineering": [
-            "Engineering graduation requirements",
-            "School of Engineering degree requirements",
-        ],
-        "business": [
-            "Business school graduation requirements",
-            "Olin Business School degree requirements",
-        ],
+    school_query_map = {
+        "arts-sciences": "What are ALL the college-wide general education requirements that Arts & Sciences students must complete? Include the complete Core Skills requirements (College Writing, Applied Numeracy, Social Contrasts, Writing-Intensive Course) AND all distribution area requirements (Humanities, Natural Sciences & Mathematics, Social Sciences, Language & Cultural Diversity). Do not include major-specific requirements.",
+        "engineering": "What are the college-wide general education requirements that ALL Engineering students must complete, regardless of major? List only the distribution requirements and writing requirements.",
+        "business": "What are the college-wide general education requirements that ALL Olin Business School students must complete, regardless of major?",
     }
+    query = school_query_map.get(school_name.lower(), f"What are the general graduation requirements for {school_name}?")
 
-    search_terms = school_search_map.get(school_name.lower(), [f"{school_name} graduation requirements"])
-    all_texts = []
-    for term in search_terms:
-        try:
-            evidence, _sources, _diag = agentic_collect_evidence(term)
-            if evidence.strip():
-                all_texts.append(evidence)
-        except Exception:
-            continue
-    if not all_texts:
-        raise ValueError(f"Could not find graduation requirements for '{school_name}' in bulletin.")
-    combined_text = "\n\n".join(all_texts[:3])  # keep prompt bounded
-    result = _parse_college_with_llm(combined_text, school_name)
+    result_obj = _retrieve(query)
+    requirements_text = result_obj.answer
 
-    if not result or not result.get("groups"):
-        # Return a partial structure rather than failing entirely
-        result = {
-            "program": f"{school_name.title()} Graduation Requirements",
-            "school": school_name.title(),
-            "groups": [],
-        }
+    school_display_map = {
+        "arts-sciences": "Arts & Sciences",
+        "engineering": "Engineering",
+        "business": "Business",
+    }
+    school_display = school_display_map.get(school_name.lower(), school_name.title())
 
+    result = {
+        "program": f"{school_display} Graduation Requirements",
+        "school": school_display,
+        "requirements_text": requirements_text,
+    }
     _college_cache[cache_key] = result
     return result
 
 
 def _parse_college_with_llm(raw_text: str, school_hint: str = '') -> dict:
     """Use MiniMax to parse raw bulletin text into college requirement groups."""
-    prompt = COLLEGE_PARSE_PROMPT.format(raw_text=raw_text[:20000])
+    prompt = COLLEGE_PARSE_PROMPT.format(raw_text=raw_text[:48000])
     try:
-        response = ChatGPT_API(MINIMAX_MODEL, prompt)
+        response = complete(MINIMAX_MODEL, prompt)
         response = response.replace('<thinking>', '').replace('</thinking>', '').strip()
         json_start = response.find('{')
         if json_start == -1:
