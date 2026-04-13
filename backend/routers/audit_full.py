@@ -1275,14 +1275,11 @@ def _aggregate_groups(verified_claims: list[dict], courses: list[dict], course_m
             "_interp": (interp_by_group or {}).get(gn, {}),
         })
 
-    # Post-process: fix "Units Required" / total-credit groups that have no claims.
-    # These groups just check that enough total credits are earned across all other groups.
-    total_credits_earned = sum(
-        cl.get("credits", 0)
-        for cl in verified_claims
-        if cl.get("type") in ("satisfies_specific", "satisfies_or_slot", "satisfies_bucket", "satisfies_area", "satisfies_lab")
-    )
-    # Deduplicate by student_course so we don't double-count
+    # Post-process: fix "Units Required" / total-credit groups.
+    # These groups check that enough total credits are earned across all other groups.
+    # The LLM rarely generates claims for them since courses are already claimed elsewhere.
+
+    # Deduplicate credits across all verified claims
     seen_for_total: set[str] = set()
     total_credits_earned = 0
     for cl in verified_claims:
@@ -1292,12 +1289,30 @@ def _aggregate_groups(verified_claims: list[dict], courses: list[dict], course_m
                 seen_for_total.add(sc)
                 total_credits_earned += cl.get("credits", 0)
 
+    # Also count credits from satisfied courses in non-units groups
+    seen_from_groups: set[str] = set()
+    credits_from_groups = 0
+    for g in groups:
+        gn_lower = g["name"].lower()
+        if "unit" not in gn_lower and "credit" not in gn_lower and "total" not in gn_lower:
+            for d in g.get("satisfied_details", []):
+                code = d.get("code", "")
+                if code and code not in seen_from_groups:
+                    seen_from_groups.add(code)
+                    credits_from_groups += d.get("credits", 0)
+
+    effective_credits = max(total_credits_earned, credits_from_groups)
+
+    # Check if all non-units groups are satisfied
+    non_units_groups = [g for g in groups if "unit" not in g["name"].lower() and "credit" not in g["name"].lower() and "total" not in g["name"].lower()]
+    all_others_satisfied = all(g["status"] == "SATISFIED" for g in non_units_groups)
+
     for g in groups:
         gn = g["name"]
         gn_lower = gn.lower()
-        # Identify total-credit groups: name suggests a credit total AND no satisfied courses were matched
+        interp = g.pop("_interp", {})
+
         if ("unit" in gn_lower or "credit" in gn_lower or "total" in gn_lower) and not g["satisfied"]:
-            interp = g.pop("_interp", {})
             target = int(interp.get("target_credits") or 0)
             # Try to parse target from credit_progress if available
             if not target and g.get("credit_progress") and "/" in g["credit_progress"]:
@@ -1305,17 +1320,23 @@ def _aggregate_groups(verified_claims: list[dict], courses: list[dict], course_m
                     target = int(re.sub(r"[^\d]", "", g["credit_progress"].split("/")[1]))
                 except (ValueError, IndexError):
                     pass
-            if target > 0 and total_credits_earned >= target:
+
+            if target > 0 and effective_credits >= target:
                 g["status"] = "SATISFIED"
                 g["percent"] = 100
                 g["remaining"] = []
-                g["credit_progress"] = f"{total_credits_earned}/{target}"
+                g["credit_progress"] = f"{effective_credits}/{target}"
             elif target > 0:
-                g["percent"] = min(99, int(total_credits_earned / target * 100))
-                g["status"] = "PARTIAL" if total_credits_earned > 0 else "MISSING"
-                g["credit_progress"] = f"{total_credits_earned}/{target}"
-        else:
-            g.pop("_interp", None)
+                g["percent"] = min(99, int(effective_credits / target * 100))
+                g["status"] = "PARTIAL" if effective_credits > 0 else "MISSING"
+                g["credit_progress"] = f"{effective_credits}/{target}"
+            elif all_others_satisfied:
+                # No target known but everything else is done — infer satisfied
+                g["status"] = "SATISFIED"
+                g["percent"] = 100
+                g["remaining"] = []
+                g["credit_progress"] = f"{effective_credits} cr"
+            print(f"[aggregate] units group '{gn}': target={target} earned={effective_credits} → {g['status']}")
 
     return groups
 
