@@ -24,10 +24,10 @@ limiter = Limiter(key_func=get_remote_address)
 _BACKEND_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(_BACKEND_ROOT))
 
-from services.requirements_extractor import get_requirements, get_college_requirements
-from services.equivalency_resolver import resolve, official_code
-from services.agentic_retriever import agentic_retrieve
-from services.llm import complete
+from ..services.requirements_extractor import get_requirements, get_college_requirements
+from ..services.equivalency_resolver import resolve, official_code
+from ..services.agentic_retriever import agentic_retrieve
+from ..services.llm import complete
 
 router = APIRouter(prefix="/api", tags=["audit"])
 

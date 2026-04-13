@@ -30,11 +30,11 @@ from slowapi.errors import RateLimitExceeded
 load_dotenv()
 
 # â”€â”€ Routers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-from routers.requirements import router as requirements_router
-from routers.audit import router as audit_router
-from routers.upload import router as upload_router
-from routers.audit_full import router as audit_full_router
-from routers.feedback import router as feedback_router
+from .routers.requirements import router as requirements_router
+from .routers.audit import router as audit_router
+from .routers.upload import router as upload_router
+from .routers.audit_full import router as audit_full_router
+from .routers.feedback import router as feedback_router
 
 DATA_DIR = Path(os.getenv("DATA_DIR", "../data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -131,7 +131,7 @@ def _sse(event: str, payload: dict) -> str:
 
 def _run_chat_query_sync(req: QueryRequest) -> tuple[str, list[dict]]:
     question = req.question
-    from services.agentic_retriever import agentic_retrieve
+    from .services.agentic_retriever import agentic_retrieve
     result = agentic_retrieve(question, req.profile)
     answer = re.sub(r"<thinking[\s\S]*?</thinking>", "", result.answer, flags=re.IGNORECASE).strip()
     return answer, result.sources

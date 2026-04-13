@@ -4,7 +4,7 @@ POST /api/audit — evaluate a student's courses against degree requirements.
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from services.audit_engine import audit
+from ..services.audit_engine import audit
 
 router = APIRouter(prefix="/api", tags=["audit"])
 

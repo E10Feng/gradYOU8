@@ -16,9 +16,9 @@ LIBS_PATH = _BACKEND_ROOT / "libs" / "pageindex_agent"
 if str(LIBS_PATH) not in sys.path:
     sys.path.insert(0, str(LIBS_PATH))
 
-from services.llm import complete
-from services.agentic_retriever import agentic_collect_evidence
-from services.program_indexer import extract_programs_from_query
+from .llm import complete
+from .agentic_retriever import agentic_collect_evidence
+from .program_indexer import extract_programs_from_query
 
 
 def _normalize_evidence(text: str) -> str:
