@@ -89,19 +89,6 @@ async def require_password(request: Request, call_next):
 
 
 
-# â”€â”€ Import vectorless RAG lib â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-import sys
-# pageindex_agent package lives at libs/pageindex_agent/pageindex_agent/
-# Add both libs/pageindex_agent (for "import pageindex_agent") and
-# libs/pageindex_agent/pageindex_agent (for the actual modules).
-AGENT_LIB = Path(__file__).parent / "libs" / "pageindex_agent"
-AGENT_PKG = AGENT_LIB / "pageindex_agent"
-sys.path.insert(0, str(AGENT_LIB))
-sys.path.insert(0, str(AGENT_PKG))
-
-from page_index import page_index_main
-from pageindex_config import pageindex_config
-from utils import ConfigLoader
 
 # â”€â”€ Models â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class IngestRequest(BaseModel):
@@ -271,6 +258,14 @@ def run_ingestion(pdf_path: Path, force: bool) -> dict:
         return {"status": "already_indexed", "tree_path": str(tree_out), "num_nodes": len(result.get("structure", [])), "elapsed_seconds": 0}
 
     import time
+    _agent_lib = Path(__file__).parent / "libs" / "pageindex_agent"
+    _agent_pkg = _agent_lib / "pageindex_agent"
+    sys.path.insert(0, str(_agent_lib))
+    sys.path.insert(0, str(_agent_pkg))
+    from page_index import page_index_main
+    from pageindex_config import pageindex_config
+    from utils import ConfigLoader
+
     t0 = time.time()
 
     config_loader = ConfigLoader()
