@@ -77,7 +77,8 @@ _APP_PASSWORD = os.getenv("APP_PASSWORD", "")
 @app.middleware("http")
 async def require_password(request: Request, call_next):
     # Always allow health check and OPTIONS (CORS preflight)
-    if request.url.path in ("/api/ping", "/api/info") or request.method == "OPTIONS":
+    # Only protect API routes; frontend/static assets are always public
+    if not request.url.path.startswith("/api") or request.method == "OPTIONS":
         return await call_next(request)
     # Skip auth if no password is configured (dev mode)
     if not _APP_PASSWORD:
