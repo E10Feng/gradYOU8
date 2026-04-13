@@ -77,7 +77,7 @@ _APP_PASSWORD = os.getenv("APP_PASSWORD", "")
 @app.middleware("http")
 async def require_password(request: Request, call_next):
     # Always allow health check and OPTIONS (CORS preflight)
-    if request.url.path in ("/", "/api/ping") or request.method == "OPTIONS":
+    if request.url.path in ("/api/ping", "/api/info") or request.method == "OPTIONS":
         return await call_next(request)
     # Skip auth if no password is configured (dev mode)
     if not _APP_PASSWORD:
@@ -296,7 +296,7 @@ def run_ingestion(pdf_path: Path, force: bool) -> dict:
 # (PageIndex-style single-shot tree search).
 
 # â”€â”€ Routes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-@app.get("/")
+@app.get("/api/info")
 async def root():
     return {"app": "WashU Navigator", "version": "0.1.0", "status": "running"}
 
