@@ -7,4 +7,4 @@ authors = ["Ethan Feng"]
 # No dependencies here — pip installs everything from backend/requirements.txt
 # in the Start Command. This pyproject.toml only exists to satisfy Poetry's
 # Python version requirement so Render uses 3.11 instead of 3.14.
-python = "^3.11"
+python = "^3.14"
