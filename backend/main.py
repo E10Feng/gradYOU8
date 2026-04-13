@@ -38,6 +38,7 @@ from .routers.feedback import router as feedback_router
 
 DATA_DIR = Path(os.getenv("DATA_DIR", str(Path(__file__).parent.parent / "data")))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
+print(f"[startup] DATA_DIR={DATA_DIR.resolve()} exists={DATA_DIR.exists()} files={list(DATA_DIR.glob('*.tree.json'))}")
 
 # â”€â”€ App setup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 limiter = Limiter(key_func=get_remote_address)
