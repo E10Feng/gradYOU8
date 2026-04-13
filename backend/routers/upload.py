@@ -161,10 +161,8 @@ async def upload_transcript(file: UploadFile = File(...), request: Request = Non
         school = school_normalized
 
         def _warm_cache():
-            import sys
-            sys.path.insert(0, str(_BACKEND_ROOT))
             try:
-                from services.requirements_extractor import get_requirements, get_college_requirements
+                from ..services.requirements_extractor import get_requirements, get_college_requirements
                 for prog in prog_names:
                     try:
                         get_requirements(prog)
