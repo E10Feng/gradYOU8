@@ -13,7 +13,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from starlette.responses import JSONResponse
 
-_DATA_DIR = Path(os.getenv("DATA_DIR", "../data"))
+_DATA_DIR = Path(os.getenv("DATA_DIR", str(Path(__file__).parent.parent.parent / "data")))
 _CODE_MAP_PATH = _DATA_DIR / "course_code_map.json"
 
 router = APIRouter(prefix="/api", tags=["feedback"])

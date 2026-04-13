@@ -36,7 +36,7 @@ from .routers.upload import router as upload_router
 from .routers.audit_full import router as audit_full_router
 from .routers.feedback import router as feedback_router
 
-DATA_DIR = Path(os.getenv("DATA_DIR", "../data"))
+DATA_DIR = Path(os.getenv("DATA_DIR", str(Path(__file__).parent.parent / "data")))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 # â”€â”€ App setup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

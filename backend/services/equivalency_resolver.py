@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 from typing import Optional
 
-_DATA_DIR = Path(os.getenv("DATA_DIR", "../data"))
+_DATA_DIR = Path(os.getenv("DATA_DIR", str(Path(__file__).parent.parent.parent / "data")))
 _EQUIV_PATH = _DATA_DIR / "equivalencies.json"
 _CODE_MAP_PATH = _DATA_DIR / "course_code_map.json"
 
