@@ -1,0 +1,24 @@
+# render.yaml — single-service monorepo: frontend build + backend API
+services:
+  - type: web
+    name: gradyou8
+    runtime: python
+    repo: https://github.com/E10Feng/gradYOU8.git
+    branch: master
+    pythonVersion: "3.11"
+    buildCommand: |
+      cd frontend && npm install && npm run build
+    startCommand: |
+      cd backend && pip install -r requirements.txt && python -m uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: LLM_PROVIDER
+        value: cerebras
+      - key: DATA_DIR
+        value: ../data
+      - key: CEREBRAS_API_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        fromService:
+          type: web
+          name: gradyou8
+          envVarKey: RENDER_EXTERNAL_URL
