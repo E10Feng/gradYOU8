@@ -361,11 +361,6 @@ async def get_tree():
 async def chat(req: QueryRequest, request: Request):
     """RAG query against the bulletin using tree-based retrieval."""
     try:
-        tree = load_tree()
-    except HTTPException:
-        raise HTTPException(503, "Document not indexed yet. POST /ingest first.")
-
-    try:
         loop = asyncio.get_event_loop()
         answer, sources = await loop.run_in_executor(None, lambda: _run_chat_query_sync(req))
     except Exception as e:
@@ -381,7 +376,7 @@ async def chat(req: QueryRequest, request: Request):
     return QueryResponse(
         answer=answer,
         sources=sources,
-        doc_name=tree.get("doc_name", "WashU Bulletin"),
+        doc_name="WashU Bulletin",
     )
 
 
@@ -389,11 +384,6 @@ async def chat(req: QueryRequest, request: Request):
 @limiter.limit("10/minute")
 async def chat_stream(req: QueryRequest, request: Request):
     """SSE stream for chat progress + incremental answer text."""
-    try:
-        tree = load_tree()
-    except HTTPException:
-        raise HTTPException(503, "Document not indexed yet. POST /ingest first.")
-
     loop = asyncio.get_event_loop()
     future = loop.run_in_executor(None, lambda: _run_chat_query_sync(req))
 
@@ -420,7 +410,7 @@ async def chat_stream(req: QueryRequest, request: Request):
             yield _sse("done", {"ok": False})
             return
 
-        yield _sse("sources", {"sources": sources, "doc_name": tree.get("doc_name", "WashU Bulletin")})
+        yield _sse("sources", {"sources": sources, "doc_name": "WashU Bulletin"})
         chunk_size = 48
         for i in range(0, len(answer), chunk_size):
             yield _sse("answer_delta", {"text": answer[i:i + chunk_size]})
