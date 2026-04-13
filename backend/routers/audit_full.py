@@ -48,27 +48,64 @@ _COURSE_TAGS: dict = _load_course_tags()
 
 
 def _resolve_tags(course_code: str) -> list[str]:
-    """Return A&S IQ tags for a course code, checking both the raw code and equivalencies."""
+    """Return A&S IQ tags for a course code, checking raw, stripped, and equivalency-chain variants."""
     code = course_code.strip().upper()
+
+    # 1. Direct lookup
     if code in _COURSE_TAGS:
         return _COURSE_TAGS[code].get("tags", [])
-    # Try stripping trailing letter variants (e.g. CHEM 111A → CHEM 111)
+
+    # 2. Strip trailing letter (e.g. CHEM 111A → CHEM 111)
     stripped = re.sub(r'[A-Z]$', '', code).strip()
     if stripped in _COURSE_TAGS:
         return _COURSE_TAGS[stripped].get("tags", [])
+
+    # 3. Follow equivalency chain (handles legacy codes like PHYSICS 191 → PHYSICS 1740)
+    resolved = official_code(code)
+    if resolved and resolved != code:
+        if resolved in _COURSE_TAGS:
+            return _COURSE_TAGS[resolved].get("tags", [])
+        # Try stripped variant of resolved too
+        resolved_stripped = re.sub(r'[A-Z]$', '', resolved).strip()
+        if resolved_stripped in _COURSE_TAGS:
+            return _COURSE_TAGS[resolved_stripped].get("tags", [])
+
     return []
+
+
+# Title keywords that strongly imply a course satisfies Applied Numeracy (AN).
+# Used as a fallback when neither the catalog nor equivalency chain resolves a tag.
+_AN_TITLE_KEYWORDS = {
+    "statistics", "probability", "regression", "data science",
+    "quantitative", "mathematical methods", "numerical analysis",
+    "matrix algebra", "linear algebra", "differential equations",
+    "calculus", "discrete math",
+}
+
+
+def _is_an_by_title(course_code: str, title: str) -> bool:
+    """Return True if a MATH or SDS course has a quantitative title strongly suggesting AN."""
+    dept = _dept_from_code(course_code)
+    if dept not in {"MATH", "SDS", "PSM"}:
+        return False
+    if not title:
+        return False
+    t = title.lower()
+    return any(kw in t for kw in _AN_TITLE_KEYWORDS)
 
 
 def _build_core_skills_context(courses: list[dict]) -> str:
     """
-    Pre-resolve Core Skills designations (WI, SC, AN) for the student's courses
-    using the bulletin catalog, so the LLM doesn't have to guess.
+    Pre-resolve Core Skills designations (WI, SC, AN, LCD) for the student's courses
+    using the bulletin catalog, equivalency resolution, and title-based fallback,
+    so the LLM doesn't have to guess.
     CWP courses are identified by code prefix.
     """
     cwp_courses = []
     an_courses = []
     sc_courses = []
     wi_courses = []
+    lcd_courses = []
     unresolved = []
 
     for c in courses:
@@ -80,12 +117,11 @@ def _build_core_skills_context(courses: list[dict]) -> str:
             cwp_courses.append(label)
             continue
 
-        tags = _resolve_tags(code)
-        # Also check via equivalency resolver
-        if not tags:
-            resolved = official_code(code)
-            if resolved and resolved != code:
-                tags = _resolve_tags(resolved)
+        tags = _resolve_tags(code)  # now covers raw + stripped + equivalency chain
+
+        # Fallback: infer AN for MATH/SDS courses with quantitative titles
+        if not tags and _is_an_by_title(code, title):
+            tags = ["AN"]
 
         tagged = False
         if 'AN' in tags:
@@ -97,6 +133,9 @@ def _build_core_skills_context(courses: list[dict]) -> str:
         if 'WI' in tags:
             wi_courses.append(label)
             tagged = True
+        if 'LCD' in tags:
+            lcd_courses.append(label)
+            tagged = True
         if not tagged and not tags:
             unresolved.append(code)
 
@@ -105,9 +144,10 @@ def _build_core_skills_context(courses: list[dict]) -> str:
     lines.append(f"Applied Numeracy (AN): {', '.join(an_courses) if an_courses else 'none found'}")
     lines.append(f"Social Contrasts (SC): {', '.join(sc_courses) if sc_courses else 'none found'}")
     lines.append(f"Writing-Intensive (WI): {', '.join(wi_courses) if wi_courses else 'none found'}")
+    lines.append(f"Language & Cultural Diversity (LCD): {', '.join(lcd_courses) if lcd_courses else 'none found'}")
     if unresolved:
         lines.append(f"(Could not find bulletin tags for: {', '.join(unresolved[:10])} — use your best judgment for these)")
-    lines.append("Use ONLY the above lists to determine Core Skills satisfaction. Do not infer WI/SC/AN from course titles or departments.")
+    lines.append("Use ONLY the above lists to determine Core Skills satisfaction. Do not infer WI/SC/AN/LCD from course titles or departments (except for MATH/SDS quantitative titles which may count as AN).")
     return "\n".join(lines)
 
 
