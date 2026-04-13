@@ -1272,7 +1272,50 @@ def _aggregate_groups(verified_claims: list[dict], courses: list[dict], course_m
             "remaining": remaining_slots,
             "remaining_details": [],
             "credit_progress": credit_progress,
+            "_interp": (interp_by_group or {}).get(gn, {}),
         })
+
+    # Post-process: fix "Units Required" / total-credit groups that have no claims.
+    # These groups just check that enough total credits are earned across all other groups.
+    total_credits_earned = sum(
+        cl.get("credits", 0)
+        for cl in verified_claims
+        if cl.get("type") in ("satisfies_specific", "satisfies_or_slot", "satisfies_bucket", "satisfies_area", "satisfies_lab")
+    )
+    # Deduplicate by student_course so we don't double-count
+    seen_for_total: set[str] = set()
+    total_credits_earned = 0
+    for cl in verified_claims:
+        if cl.get("type") in ("satisfies_specific", "satisfies_or_slot", "satisfies_bucket", "satisfies_area", "satisfies_lab"):
+            sc = cl.get("student_course", "")
+            if sc and sc not in seen_for_total:
+                seen_for_total.add(sc)
+                total_credits_earned += cl.get("credits", 0)
+
+    for g in groups:
+        gn = g["name"]
+        gn_lower = gn.lower()
+        # Identify total-credit groups: name suggests a credit total AND no satisfied courses were matched
+        if ("unit" in gn_lower or "credit" in gn_lower or "total" in gn_lower) and not g["satisfied"]:
+            interp = g.pop("_interp", {})
+            target = int(interp.get("target_credits") or 0)
+            # Try to parse target from credit_progress if available
+            if not target and g.get("credit_progress") and "/" in g["credit_progress"]:
+                try:
+                    target = int(re.sub(r"[^\d]", "", g["credit_progress"].split("/")[1]))
+                except (ValueError, IndexError):
+                    pass
+            if target > 0 and total_credits_earned >= target:
+                g["status"] = "SATISFIED"
+                g["percent"] = 100
+                g["remaining"] = []
+                g["credit_progress"] = f"{total_credits_earned}/{target}"
+            elif target > 0:
+                g["percent"] = min(99, int(total_credits_earned / target * 100))
+                g["status"] = "PARTIAL" if total_credits_earned > 0 else "MISSING"
+                g["credit_progress"] = f"{total_credits_earned}/{target}"
+        else:
+            g.pop("_interp", None)
 
     return groups
 
