@@ -609,6 +609,15 @@ export default function Profile() {
           {profileActive && (
             <div className="flex items-center gap-2 shrink-0">
               <ThemeButton />
+              <a
+                href="https://docs.google.com/forms/d/e/1FAIpQLSfOCVCVX3i-I8GWX-UutWnzdgZswwoVrUBggBo3UpXWSbBs2g/viewform?usp=sharing&ouid=102679118124373033740"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs px-3.5 py-1.5 rounded-full glass-chip transition-colors"
+                style={{ color: 'var(--text-muted)', textDecoration: 'none' }}
+              >
+                Feedback
+              </a>
               {!sidebarVisible && (
                 <button
                   type="button"
